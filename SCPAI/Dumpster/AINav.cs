@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-using SCPAI;
+using System;
+
 
 namespace SCPAI.Dumpster
 {
@@ -18,111 +19,172 @@ namespace SCPAI.Dumpster
         public AINav Instance;
         public Player currentTarget;
         public float gravity = 9.81f;
-        public NavMeshAgent navMeshAgent;
+        public NavMeshAgent scp096navMeshAgent;
+        public NavMeshSurface currentNavSurface;
         public int numoftargets;
+        public float distanceThreshold = 0.5f;
+        public float radius = 2.0f; 
+        public int numRays = 16;
+        public float rayDistance = 2.0f;
+        SphereCollider obstacleDetectionCollider;
+
 
         public List<GameObject> generateNav = new List<GameObject>();
         public List<Door> currentRoomDoors = new List<Door>();
-        private int doortoPick;
+        private int randomIndex;
 
         public void AddAgent()
         {
-            ReferenceHub newPlayer = Main.Instance.aihand.hubPlayer;
-            navMeshAgent = newPlayer.gameObject.AddComponent<NavMeshAgent>();
-            navMeshAgent.radius = 0.1f;
-            navMeshAgent.stoppingDistance = 4f;
-            navMeshAgent.acceleration = 15f;
-            navMeshAgent.speed = 25f;
-            navMeshAgent.angularSpeed = 120f;
-            navMeshAgent.baseOffset = 1f;
+            ReferenceHub newPlayerhub = Main.Instance.aihand.hubPlayer;
+            scp096navMeshAgent = newPlayerhub.gameObject.AddComponent<NavMeshAgent>();
+            obstacleDetectionCollider = Main.Instance.aihand.newPlayer.AddComponent<SphereCollider>();
+            obstacleDetectionCollider.radius = radius;
+            scp096navMeshAgent.radius = 0.5f;
+            scp096navMeshAgent.acceleration = 40f;
+            scp096navMeshAgent.speed = 8.5f;
+            scp096navMeshAgent.angularSpeed = 120f;
+            scp096navMeshAgent.stoppingDistance = 0.3f;
+            scp096navMeshAgent.baseOffset = 1f;
+            scp096navMeshAgent.autoRepath = true;
         }
         public void GenerateNavMesh()
         {
-            foreach (Door door in Door.List) { door.GameObject.AddComponent<NavMeshLink>(); }
+            foreach(Room room in Room.List)
+            {
+                room.GameObject.AddComponent<NavMeshSurface>();
+                var navSurface = room.gameObject.GetComponent<NavMeshSurface>();
+                navSurface.voxelSize = 0.1f;
+                navSurface.collectObjects = CollectObjects.Children;
+                navSurface.BuildNavMesh();
+            }
+
+            foreach (Door door in Door.List) 
+            {                
+               // door.GameObject.AddComponent<NavMeshLink>();
+               // door.GameObject.AddComponent<NavMeshSurface>();
+                //door.GameObject.AddComponent<NavMeshObstacle>();
+               // var doorSur = door.GameObject.GetComponent<NavMeshSurface>();
+                //doorSur.collectObjects = CollectObjects.Children;
+                //doorSur.BuildNavMesh();
+            }
+
+            foreach(Lift lift in Lift.List)
+            {
+                lift.GameObject.AddComponent<NavMeshLink>();
+                lift.GameObject.AddComponent<NavMeshSurface>();
+                var liftSur = lift.GameObject.GetComponent<NavMeshSurface>();
+                liftSur.collectObjects = CollectObjects.Children;
+                liftSur.BuildNavMesh();
+            }
         }
         public IEnumerator<float> SCPWander(Player player, CharacterController controller)
         {
-            Log.Info("cyz");
             for(; ;)
             {
-                Log.Info("started 1 ");
-                //Update the current room and find doors within that room, then pick a random one and move to it
-                if (currentRoamingRoom != player.CurrentRoom)
+                if(currentRoamingRoom != player.CurrentRoom)
                 {
-                    Log.Info("started 2 ");
-                    System.Random rnd = new();
                     currentRoamingRoom = player.CurrentRoom;
                     currentRoamingRoomPOS = player.CurrentRoom.Position;
-                    Log.Info($"Current room = {currentRoamingRoom}");
-                    foreach (Door door in currentRoamingRoom.Doors)
+                    currentRoomDoors.Clear();
+                }
+                foreach (Door door in currentRoamingRoom.Doors)
+                {
+                    if (!currentRoomDoors.Contains(door) && door.RequiredPermissions.RequiredPermissions == Interactables.Interobjects.DoorUtils.KeycardPermissions.None || door.RequiredPermissions.RequiredPermissions == Interactables.Interobjects.DoorUtils.KeycardPermissions.None || door.IsOpen)
                     {
                         currentRoomDoors.Add(door);
-                        Log.Info(door);
-                    }
-                    doortoPick = rnd.Next(1, currentRoomDoors.Count);
-                    doorToMoveTo = currentRoomDoors.ElementAt(doortoPick).Position;
-                    //Move and look at the door position
-                    controller.Move(doorToMoveTo);
-                    Main.Instance.aihand.newPlayer.transform.LookAt(doorToMoveTo);                  
-                }
-                RaycastHit hit;
-                if (Physics.Raycast(Main.Instance.aihand.newPlayer.transform.position, Vector3.forward, out hit, 1f))
-                {
-                    if(hit.transform.gameObject.Equals(currentRoomDoors.ElementAt(doortoPick)) && !currentRoomDoors.ElementAt(doortoPick).IsOpen)
-                    {
-                        Log.Info("doorippe");
-                        currentRoomDoors.ElementAt(doortoPick).IsOpen = true;
                     }
                 }
-                Log.Info($"Door position : '{doorToMoveTo}' Controller position : '{controller.transform.position}'");
+                Door randomDoor = currentRoomDoors[UnityEngine.Random.Range(0, currentRoomDoors.Count)];
+                scp096navMeshAgent.SetDestination(randomDoor.Position);
+                var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
+                var eulerAngles = Quaternion.LookRotation(randomDoor.Position - player.Position, Vector3.up).eulerAngles;
+                mouseLook.CurrentHorizontal = eulerAngles.y;
+                mouseLook.CurrentVertical = eulerAngles.x;                
                 yield return Timing.WaitForSeconds(0.5f);
             }
         }
         public IEnumerator<float> SCP096Update(Player player, CharacterController controller)
         {
-            Log.Info("Ran");
-            for (; ;)
+            for (; ; )
             {
-                numoftargets = Main.Instance.aihand.scp096targets.Values.Count;
-                if (currentTarget == null)
+                try
                 {
-                    System.Random rnd = new();
-                    int randomIndex = rnd.Next(0, Main.Instance.aihand.scp096targets.Count);
-                    currentTarget = Main.Instance.aihand.scp096targets.ElementAt(randomIndex).Value;
-                }
-                Log.Info(currentTarget);
-                if (!currentTarget.IsDead)
-                {
-                    Vector3 targetPosition = currentTarget.Position;
-                    Vector3 direction = (targetPosition - controller.transform.position).normalized;
-                    float distanceToTarget = Vector3.Distance(targetPosition, controller.transform.position);
-                    float moveDistance = Mathf.Min(navMeshAgent.speed * Time.deltaTime, distanceToTarget);
-                    Vector3 movement = direction * moveDistance;
-                    controller.Move(movement);
+                    currentRoamingRoom = player.CurrentRoom;
+                    currentRoomDoors = (List<Door>)player.CurrentRoom.Doors;
+                    numoftargets = Main.Instance.aihand.scp096targets.Values.Count;
+                    if (currentTarget == null)
+                    {
+                        System.Random rnd = new();
+                        randomIndex = rnd.Next(0, Main.Instance.aihand.scp096targets.Count);
+                        if (!Main.Instance.aihand.scp096targets.Contains(Main.Instance.aihand.scp096targets.ElementAt(randomIndex)))
+                        {
+                            randomIndex = rnd.Next(0, Main.Instance.aihand.scp096targets.Count);
+                        }
+                        currentTarget = Main.Instance.aihand.scp096targets.ElementAt(randomIndex).Value;
+                    }
+                    if (currentTarget != null && currentTarget.IsDead && Main.Instance.aihand.scp096targets.Count > 0)
+                    {
+                        Log.Debug("Target is dead but list is above 1");
+                        Main.Instance.aihand.scp096targets.Remove(currentTarget);
+
+                        System.Random rnd = new();
+                        int randomIndex = rnd.Next(0, Main.Instance.aihand.scp096targets.Count);
+                        currentTarget = Main.Instance.aihand.scp096targets.ElementAt(randomIndex).Value;
+                    }
+                    else if (currentTarget != null && currentTarget.IsDead && Main.Instance.aihand.scp096targets.Count == 0)
+                    {
+                        Log.Debug("All targets dead");
+                        Main.Instance.aihand.scp096targets.Clear();
+                        currentTarget = null;
+                        player.Role.As<Scp096Role>().Calm(true);
+                        player.Role.As<Scp096Role>().ClearTargets();
+                        yield break;
+                    }
+                    scp096navMeshAgent.SetDestination(currentTarget.Position);
+                    var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
+                    var eulerAngles = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
+                    mouseLook.CurrentHorizontal = eulerAngles.y;
+                    mouseLook.CurrentVertical = eulerAngles.x;
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
                     layerMask = ~layerMask;
                     RaycastHit hit;
-                    Log.Info("sus");
                     if (Physics.Raycast(player.Position, Vector3.down, out hit, 10f, layerMask))
                     {
-                        GameObject hitw = hit.collider.gameObject;
-                        if (!hitw.name.Contains("mixamorig"))
+                        GameObject hitObject = hit.collider.gameObject;
+                        NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
+                        currentNavSurface = navSurface;
+                        if (navSurface == null && hitObject.name != "Frame")
                         {
-                            GameObject hitObject = hit.collider.gameObject;
-                            NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
-                            if (navSurface == null)
-                            {
-                                navSurface = hitObject.AddComponent<NavMeshSurface>();
-                                navSurface.collectObjects = CollectObjects.Children;
-                                navSurface.BuildNavMesh();
-                            }
+                            Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
+                            navSurface = hitObject.AddComponent<NavMeshSurface>();
+                            navSurface.collectObjects = CollectObjects.Children;
+                            navSurface.BuildNavMesh();
                         }
+                       
                     }
-                    Main.Instance.aihand.AIPlayer.Rotation = currentTarget.CameraTransform.position;
-                }                
+                    HashSet<string> obstacleNames = new();
+                    RaycastHit[] hits = Physics.SphereCastAll(player.Transform.position, radius, Vector3.forward, 0f, layerToIgnore);
+                    foreach (RaycastHit Collidesr in hits)
+                    {
+                        if (Collidesr.transform.gameObject.GetComponent<NavMeshObstacle>()) Log.Debug("Object already has a NavMeshObstacle component!");
+                        if(!Collidesr.transform.gameObject.GetComponent<NavMeshObstacle>() && Collidesr.transform.gameObject.layer != layerToIgnore)
+                        {                           
+                            NavMeshObstacle obst = Collidesr.transform.gameObject.AddComponent<NavMeshObstacle>();
+                            obst.carving = true;
+                            obst.GetComponent<NavMeshObstacle>().size = Collidesr.collider.bounds.size;
+                            Log.Debug($"Adding NavMeshObstacle to {Collidesr.transform.gameObject.name} and adding data");
+                            currentNavSurface.AddData();
+                        }          
+                    }                
+                }
+                catch (Exception e)
+                {
+                    Log.Debug("Unless AI in-game is not functioning properly, ignore these messages :" + e);
+                }
                 yield return Timing.WaitForSeconds(0.1f);
             }
         }
+
     }
 }

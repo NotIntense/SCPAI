@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Player = Exiled.Events.Handlers.Player;
 using SCP096 = Exiled.Events.Handlers.Scp096;
 using Server = Exiled.Events.Handlers.Server;
+using HarmonyLib;
 
 namespace SCPAI.Dumpster
 {
@@ -13,6 +14,7 @@ namespace SCPAI.Dumpster
         public static Main Instance;
         public AIHandler aihand;
         public AINav ainav;
+        private Harmony _harmony;
         public List<ReferenceHub> Dummies = new();
         public override string Name => "SCP-AI";
         public override string Prefix => "SCPAI";
@@ -23,6 +25,8 @@ namespace SCPAI.Dumpster
 
         public override void OnEnabled()
         {
+            _harmony = new Harmony("SCP-AI Patches");
+            _harmony.PatchAll();
             Instance = this;
             aihand = new AIHandler();
             ainav = new AINav();
@@ -32,6 +36,7 @@ namespace SCPAI.Dumpster
 
         public override void OnDisabled()
         {
+            _harmony.UnpatchAll();
             Instance = null;
             UnRegisterEvents();
             base.OnDisabled();
@@ -41,8 +46,9 @@ namespace SCPAI.Dumpster
 
         public void RegisterEvents()
         {
-            player = new Player();;
-            Player.ChangingRole +=  aihand.ChangeAIParameters;
+            player = new Player();
+            Player.ChangingRole += aihand.ChangeAIParameters;
+            Player.InteractingDoor += aihand.DoorListtrack;
             SCP096.AddingTarget += aihand.AIRage;
             Server.WaitingForPlayers += aihand.SpawnAI;
             Server.RestartingRound += aihand.ReloadPlugin;
@@ -51,6 +57,12 @@ namespace SCPAI.Dumpster
         public void UnRegisterEvents()
         {
             player = null;
+        }
+
+        public static bool isAI(ReferenceHub hub)
+        {
+            bool isDummy = Instance.Dummies.Contains(hub);
+            return isDummy;
         }
     }
 }

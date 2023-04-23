@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("SCPAI")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Iwm a swilly femboy uwu rawr >wO")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("NotIntense")]
 [assembly: AssemblyProduct("SCPAI")]
 [assembly: AssemblyCopyright("Copyright ©  2023")]
 [assembly: AssemblyTrademark("")]

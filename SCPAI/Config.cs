@@ -13,5 +13,8 @@ namespace SCPAI
 
         [Description("Shows messages in the console about what the plugin is doing during startup sequence, not really needed")]
         public bool LogStartup { get; set; } = false;
+
+        [Description("Genertates most of the required NavMeshes while waiting for players, instead of generating when it needs it. (RECOMMENED TO LEAVE TRUE)")]
+        public bool generateNavMeshOnWaiting { get; set; } = true;
     }
 }
