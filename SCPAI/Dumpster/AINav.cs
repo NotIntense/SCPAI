@@ -18,7 +18,6 @@ namespace SCPAI.Dumpster
         public Vector3 doorToMoveTo;
         public AINav Instance;
         public Player currentTarget;
-        public float gravity = 9.81f;
         public NavMeshAgent scp096navMeshAgent;
         public NavMeshSurface currentNavSurface;
         public int numoftargets;
@@ -39,13 +38,14 @@ namespace SCPAI.Dumpster
             scp096navMeshAgent = newPlayerhub.gameObject.AddComponent<NavMeshAgent>();
             obstacleDetectionCollider = Main.Instance.aihand.newPlayer.AddComponent<SphereCollider>();
             obstacleDetectionCollider.radius = radius;
-            scp096navMeshAgent.radius = 0.5f;
+            scp096navMeshAgent.radius = 1f;
             scp096navMeshAgent.acceleration = 40f;
             scp096navMeshAgent.speed = 8.5f;
             scp096navMeshAgent.angularSpeed = 120f;
             scp096navMeshAgent.stoppingDistance = 0.3f;
             scp096navMeshAgent.baseOffset = 1f;
             scp096navMeshAgent.autoRepath = true;
+            scp096navMeshAgent.autoTraverseOffMeshLink = false;
         }
         public void GenerateNavMesh()
         {
@@ -140,11 +140,31 @@ namespace SCPAI.Dumpster
                         player.Role.As<Scp096Role>().ClearTargets();
                         yield break;
                     }
+                    if (scp096navMeshAgent.isOnOffMeshLink)
+                    {
+                        OffMeshLinkData data = scp096navMeshAgent.currentOffMeshLinkData;
+                        Vector3 endPos = data.endPos + Vector3.up * scp096navMeshAgent.baseOffset;
+                        scp096navMeshAgent.transform.position = Vector3.MoveTowards(scp096navMeshAgent.transform.position, endPos, scp096navMeshAgent.speed * Time.deltaTime);
+                        if (scp096navMeshAgent.transform.position == endPos)
+                        {
+                            scp096navMeshAgent.CompleteOffMeshLink();
+                        }
+                    }
                     scp096navMeshAgent.SetDestination(currentTarget.Position);
-                    var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
-                    var eulerAngles = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
-                    mouseLook.CurrentHorizontal = eulerAngles.y;
-                    mouseLook.CurrentVertical = eulerAngles.x;
+                    if(currentRoamingRoom = currentTarget.CurrentRoom)
+                    {
+                        var mouseLookInsameroom = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
+                        var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
+                        mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
+                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
+                    }
+                    else
+                    {
+                        var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
+                        var eulerAngles = Quaternion.LookRotation(currentRoamingRoom.Position - player.Position, Vector3.up).eulerAngles;
+                        mouseLook.CurrentHorizontal = eulerAngles.y;
+                        mouseLook.CurrentVertical = eulerAngles.x;
+                    }
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
                     layerMask = ~layerMask;
@@ -154,7 +174,7 @@ namespace SCPAI.Dumpster
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame")
+                        if (navSurface == null && hitObject.name != "Frame" && hitObject.name.StartsWith("LCZ"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();

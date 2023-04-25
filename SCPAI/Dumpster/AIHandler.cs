@@ -155,29 +155,39 @@ namespace SCPAI.Dumpster
                     if (ev.Door.DoorLockType != Exiled.API.Enums.DoorLockType.None) return;
                     Log.Debug("Door Opened");
                     doorState[ev.Door] = DoorAction.Opened;
-                    if (ev.Door.Transform.gameObject.GetComponent<NavMeshObstacle>())
+                    try
                     {
                         Destroy(ev.Door.Transform.gameObject.GetComponent<NavMeshObstacle>());
+                        Log.Debug("Obstacle Deleted");
                     }
-                    ev.Door.Transform.gameObject.AddComponent<NavMeshSurface>();
+                    catch (NullReferenceException e)
+                    {
+                        Log.Debug($"Unable to delete NavMeshObstacle component! Error --> {e}");
+                    }
+                    catch(Exception ue)
+                    {
+                        Log.Debug($"Unknown execption thrown! Full Error --> {ue}");
+                    }                   
                     ev.Door.Transform.gameObject.AddComponent<NavMeshLink>();
-                    navSurface = ev.Door.Transform.gameObject.GetComponent<NavMeshSurface>();
-                    navSurface.collectObjects = CollectObjects.Children;
                     Main.Instance.ainav.currentNavSurface.AddData();
                 }
                 else if (ev.Door.ExactState != 0) //Fully Closed
                 {
                     if (ev.Door.DoorLockType != Exiled.API.Enums.DoorLockType.None) return;
                     Log.Debug("Door Closed");
-                    if (navSurface == null)
+                    try
                     {
-                        Log.Warn("NavSurface was null but was attempted to be deleted");
-                        return;
+                        Destroy(ev.Door.Transform.gameObject.GetComponent<NavMeshLink>());
+
+                        Log.Debug("NavMeshLink Deleted");
                     }
-                    else
+                    catch (NullReferenceException e)
                     {
-                        Destroy(ev.Door.Transform.gameObject.GetComponent<NavMeshSurface>());
-                        Destroy(ev.Door.Transform.gameObject.AddComponent<NavMeshLink>());
+                        Log.Debug($"Unable to delete NavMeshLink component! Error --> {e}");
+                    }
+                    catch (Exception ue)
+                    {
+                        Log.Debug($"Unknown execption thrown! Full Error --> {ue}");
                     }
                     doorState[ev.Door] = DoorAction.Closed;
                     ev.Door.Transform.gameObject.AddComponent<NavMeshObstacle>();
@@ -188,7 +198,7 @@ namespace SCPAI.Dumpster
             }
             catch(Exception e)
             {
-                Log.Debug($"Unknown error, if needed contact NotIntense#1613 on discord {e}");
+                //Im so goobius
             }
            
         }
