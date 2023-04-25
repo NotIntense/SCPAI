@@ -169,6 +169,8 @@ namespace SCPAI.Dumpster
                         Log.Debug($"Unknown execption thrown! Full Error --> {ue}");
                     }                   
                     ev.Door.Transform.gameObject.AddComponent<NavMeshLink>();
+                    NavMeshLink navLink = ev.Door.Transform.gameObject.GetComponent<NavMeshLink>();
+                    navLink.width = ev.Door.Transform.localScale.x; // or y or z idk
                     Main.Instance.ainav.currentNavSurface.AddData();
                 }
                 else if (ev.Door.ExactState != 0) //Fully Closed

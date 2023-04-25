@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -21,118 +20,84 @@ namespace UnityEngine.AI
     public class NavMeshSurface : MonoBehaviour
     {
         [SerializeField]
-        private int m_AgentTypeID;
-
-        public int agentTypeID
-        { get { return m_AgentTypeID; } set { m_AgentTypeID = value; } }
+        int m_AgentTypeID;
+        public int agentTypeID { get { return m_AgentTypeID; } set { m_AgentTypeID = value; } }
 
         [SerializeField]
-        private CollectObjects m_CollectObjects = CollectObjects.All;
-
-        public CollectObjects collectObjects
-        { get { return m_CollectObjects; } set { m_CollectObjects = value; } }
+        CollectObjects m_CollectObjects = CollectObjects.All;
+        public CollectObjects collectObjects { get { return m_CollectObjects; } set { m_CollectObjects = value; } }
 
         [SerializeField]
-        private Vector3 m_Size = new Vector3(10.0f, 10.0f, 10.0f);
-
-        public Vector3 size
-        { get { return m_Size; } set { m_Size = value; } }
+        Vector3 m_Size = new Vector3(10.0f, 10.0f, 10.0f);
+        public Vector3 size { get { return m_Size; } set { m_Size = value; } }
 
         [SerializeField]
-        private Vector3 m_Center = new Vector3(0, 2.0f, 0);
-
-        public Vector3 center
-        { get { return m_Center; } set { m_Center = value; } }
+        Vector3 m_Center = new Vector3(0, 2.0f, 0);
+        public Vector3 center { get { return m_Center; } set { m_Center = value; } }
 
         [SerializeField]
-        private LayerMask m_LayerMask = ~0;
-
-        public LayerMask layerMask
-        { get { return m_LayerMask; } set { m_LayerMask = value; } }
+        LayerMask m_LayerMask = ~0;
+        public LayerMask layerMask { get { return m_LayerMask; } set { m_LayerMask = value; } }
 
         [SerializeField]
-        private NavMeshCollectGeometry m_UseGeometry = NavMeshCollectGeometry.RenderMeshes;
-
-        public NavMeshCollectGeometry useGeometry
-        { get { return m_UseGeometry; } set { m_UseGeometry = value; } }
+        NavMeshCollectGeometry m_UseGeometry = NavMeshCollectGeometry.RenderMeshes;
+        public NavMeshCollectGeometry useGeometry { get { return m_UseGeometry; } set { m_UseGeometry = value; } }
 
         [SerializeField]
-        private int m_DefaultArea;
-
-        public int defaultArea
-        { get { return m_DefaultArea; } set { m_DefaultArea = value; } }
+        int m_DefaultArea;
+        public int defaultArea { get { return m_DefaultArea; } set { m_DefaultArea = value; } }
 
         [SerializeField]
-        private bool m_IgnoreNavMeshAgent = true;
-
-        public bool ignoreNavMeshAgent
-        { get { return m_IgnoreNavMeshAgent; } set { m_IgnoreNavMeshAgent = value; } }
+        bool m_IgnoreNavMeshAgent = true;
+        public bool ignoreNavMeshAgent { get { return m_IgnoreNavMeshAgent; } set { m_IgnoreNavMeshAgent = value; } }
 
         [SerializeField]
-        private bool m_IgnoreNavMeshObstacle = true;
-
-        public bool ignoreNavMeshObstacle
-        { get { return m_IgnoreNavMeshObstacle; } set { m_IgnoreNavMeshObstacle = value; } }
+        bool m_IgnoreNavMeshObstacle = true;
+        public bool ignoreNavMeshObstacle { get { return m_IgnoreNavMeshObstacle; } set { m_IgnoreNavMeshObstacle = value; } }
 
         [SerializeField]
-        private bool m_OverrideTileSize;
-
-        public bool overrideTileSize
-        { get { return m_OverrideTileSize; } set { m_OverrideTileSize = value; } }
-
+        bool m_OverrideTileSize;
+        public bool overrideTileSize { get { return m_OverrideTileSize; } set { m_OverrideTileSize = value; } }
         [SerializeField]
-        private int m_TileSize = 256;
-
-        public int tileSize
-        { get { return m_TileSize; } set { m_TileSize = value; } }
-
+        int m_TileSize = 256;
+        public int tileSize { get { return m_TileSize; } set { m_TileSize = value; } }
         [SerializeField]
-        private bool m_OverrideVoxelSize;
-
-        public bool overrideVoxelSize
-        { get { return m_OverrideVoxelSize; } set { m_OverrideVoxelSize = value; } }
-
+        bool m_OverrideVoxelSize;
+        public bool overrideVoxelSize { get { return m_OverrideVoxelSize; } set { m_OverrideVoxelSize = value; } }
         [SerializeField]
-        private float m_VoxelSize;
-
-        public float voxelSize
-        { get { return m_VoxelSize; } set { m_VoxelSize = value; } }
+        float m_VoxelSize;
+        public float voxelSize { get { return m_VoxelSize; } set { m_VoxelSize = value; } }
 
         // Currently not supported advanced options
         [SerializeField]
-        private bool m_BuildHeightMesh;
-
-        public bool buildHeightMesh
-        { get { return m_BuildHeightMesh; } set { m_BuildHeightMesh = value; } }
+        bool m_BuildHeightMesh;
+        public bool buildHeightMesh { get { return m_BuildHeightMesh; } set { m_BuildHeightMesh = value; } }
 
         // Reference to whole scene navmesh data asset.
         [UnityEngine.Serialization.FormerlySerializedAs("m_BakedNavMeshData")]
         [SerializeField]
-        private NavMeshData m_NavMeshData;
-
-        public NavMeshData navMeshData
-        { get { return m_NavMeshData; } set { m_NavMeshData = value; } }
+        NavMeshData m_NavMeshData;
+        public NavMeshData navMeshData { get { return m_NavMeshData; } set { m_NavMeshData = value; } }
 
         // Do not serialize - runtime only state.
-        private NavMeshDataInstance m_NavMeshDataInstance;
+        NavMeshDataInstance m_NavMeshDataInstance;
+        Vector3 m_LastPosition = Vector3.zero;
+        Quaternion m_LastRotation = Quaternion.identity;
 
-        private Vector3 m_LastPosition = Vector3.zero;
-        private Quaternion m_LastRotation = Quaternion.identity;
-
-        private static readonly List<NavMeshSurface> s_NavMeshSurfaces = new List<NavMeshSurface>();
+        static readonly List<NavMeshSurface> s_NavMeshSurfaces = new List<NavMeshSurface>();
 
         public static List<NavMeshSurface> activeSurfaces
         {
             get { return s_NavMeshSurfaces; }
         }
 
-        private void OnEnable()
+        void OnEnable()
         {
             Register(this);
             AddData();
         }
 
-        private void OnDisable()
+        void OnDisable()
         {
             RemoveData();
             Unregister(this);
@@ -229,7 +194,7 @@ namespace UnityEngine.AI
             return NavMeshBuilder.UpdateNavMeshDataAsync(data, GetBuildSettings(), sources, sourcesBounds);
         }
 
-        private static void Register(NavMeshSurface surface)
+        static void Register(NavMeshSurface surface)
         {
 #if UNITY_EDITOR
             var isInPreviewScene = EditorSceneManager.IsPreviewSceneObject(surface);
@@ -248,7 +213,7 @@ namespace UnityEngine.AI
                 s_NavMeshSurfaces.Add(surface);
         }
 
-        private static void Unregister(NavMeshSurface surface)
+        static void Unregister(NavMeshSurface surface)
         {
             s_NavMeshSurfaces.Remove(surface);
 
@@ -256,13 +221,13 @@ namespace UnityEngine.AI
                 NavMesh.onPreUpdate -= UpdateActive;
         }
 
-        private static void UpdateActive()
+        static void UpdateActive()
         {
             for (var i = 0; i < s_NavMeshSurfaces.Count; ++i)
                 s_NavMeshSurfaces[i].UpdateDataIfTransformChanged();
         }
 
-        private void AppendModifierVolumes(ref List<NavMeshBuildSource> sources)
+        void AppendModifierVolumes(ref List<NavMeshBuildSource> sources)
         {
 #if UNITY_EDITOR
             var myStage = StageUtility.GetStageHandle(gameObject);
@@ -304,7 +269,7 @@ namespace UnityEngine.AI
             }
         }
 
-        private List<NavMeshBuildSource> CollectSources()
+        List<NavMeshBuildSource> CollectSources()
         {
             var sources = new List<NavMeshBuildSource>();
             var markups = new List<NavMeshBuildMarkup>();
@@ -376,22 +341,23 @@ namespace UnityEngine.AI
             }
 
             if (m_IgnoreNavMeshAgent)
-                sources.RemoveAll((x) => (x.component != null && x.component.gameObject.GetComponent<NavMeshAgent>() != null));
+                sources.RemoveAll((x) => x.component != null && x.component is NavMeshAgent);
 
             if (m_IgnoreNavMeshObstacle)
-                sources.RemoveAll((x) => (x.component != null && x.component.gameObject.GetComponent<NavMeshObstacle>() != null));
+                sources.RemoveAll((x) => x.component != null && x.component is NavMeshObstacle);
+
 
             AppendModifierVolumes(ref sources);
 
             return sources;
         }
 
-        private static Vector3 Abs(Vector3 v)
+        static Vector3 Abs(Vector3 v)
         {
             return new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
         }
 
-        private static Bounds GetWorldBounds(Matrix4x4 mat, Bounds bounds)
+        static Bounds GetWorldBounds(Matrix4x4 mat, Bounds bounds)
         {
             var absAxisX = Abs(mat.MultiplyVector(Vector3.right));
             var absAxisY = Abs(mat.MultiplyVector(Vector3.up));
@@ -401,7 +367,7 @@ namespace UnityEngine.AI
             return new Bounds(worldPosition, worldSize);
         }
 
-        private Bounds CalculateWorldBounds(List<NavMeshBuildSource> sources)
+        Bounds CalculateWorldBounds(List<NavMeshBuildSource> sources)
         {
             // Use the unscaled matrix for the NavMeshSurface
             Matrix4x4 worldToLocal = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
@@ -438,14 +404,14 @@ namespace UnityEngine.AI
             return result;
         }
 
-        private bool HasTransformChanged()
+        bool HasTransformChanged()
         {
             if (m_LastPosition != transform.position) return true;
             if (m_LastRotation != transform.rotation) return true;
             return false;
         }
 
-        private void UpdateDataIfTransformChanged()
+        void UpdateDataIfTransformChanged()
         {
             if (HasTransformChanged())
             {
