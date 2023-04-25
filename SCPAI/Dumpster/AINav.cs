@@ -164,7 +164,7 @@ namespace SCPAI.Dumpster
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame" && hitObject.name.StartsWith("LCZ"))
+                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
