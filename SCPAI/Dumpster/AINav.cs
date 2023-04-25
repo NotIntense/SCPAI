@@ -58,16 +58,6 @@ namespace SCPAI.Dumpster
                 navSurface.BuildNavMesh();
             }
 
-            foreach (Door door in Door.List) 
-            {                
-               // door.GameObject.AddComponent<NavMeshLink>();
-               // door.GameObject.AddComponent<NavMeshSurface>();
-                //door.GameObject.AddComponent<NavMeshObstacle>();
-               // var doorSur = door.GameObject.GetComponent<NavMeshSurface>();
-                //doorSur.collectObjects = CollectObjects.Children;
-                //doorSur.BuildNavMesh();
-            }
-
             foreach(Lift lift in Lift.List)
             {
                 lift.GameObject.AddComponent<NavMeshLink>();
