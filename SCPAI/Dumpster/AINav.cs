@@ -168,6 +168,7 @@ namespace SCPAI.Dumpster
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
+                            navSurface.size = hitObject.transform.localScale;
                             navSurface.collectObjects = CollectObjects.Children;
                             navSurface.BuildNavMesh();
                         }
