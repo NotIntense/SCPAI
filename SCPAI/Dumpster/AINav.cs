@@ -219,6 +219,8 @@ namespace SCPAI.Dumpster
                         var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
                         mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
+                        Vector3 rotation = new Vector3(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
+                        player.Rotation = rotation;
                     }
                     else
                     {
@@ -226,6 +228,8 @@ namespace SCPAI.Dumpster
                         var eulerAngles = Quaternion.LookRotation(currentRoamingRoom.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLook.CurrentHorizontal = eulerAngles.y;
                         mouseLook.CurrentVertical = eulerAngles.x;
+                        Vector3 rotation = new Vector3(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
+                        player.Rotation = rotation;
                     }
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
@@ -236,7 +240,7 @@ namespace SCPAI.Dumpster
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore)
+                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
