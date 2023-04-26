@@ -86,7 +86,7 @@ namespace SCPAI.Dumpster
                 Log.Error($"Unknown error occured, send error message to NotIntense#1613 on discord : {e}");
             }
             if (Main.Instance.Config.generateNavMeshOnWaiting) Log.Info("NavMesh Generation succesful!");
-            Log.Info($"AI with ID : '{id}' has succesfully joined");
+            Log.Info($"AI with ID : '{id}' has succesfully joined.");
         }
 
         public void ChangeAIParameters(ChangingRoleEventArgs ev)
