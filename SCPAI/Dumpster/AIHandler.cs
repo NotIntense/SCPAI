@@ -30,7 +30,6 @@ namespace SCPAI.Dumpster
 
         public int DummiesAmount = Main.Instance.Dummies.Count;
         private int id;
-        private NavMeshSurface navSurface;
 
         public void SpawnAI()
         {
@@ -149,8 +148,8 @@ namespace SCPAI.Dumpster
                 if (!doorState.ContainsKey(ev.Door))
                 {
                     doorState.Add(ev.Door, (DoorAction)ev.Door.ExactState);
-                }
-                if (ev.Door.ExactState != 1) //Fully Open
+                }             
+                if (ev.Door.ExactState != 1 && !ev.Door.IsBroken) //Fully Open
                 {
                     if (ev.Door.DoorLockType != Exiled.API.Enums.DoorLockType.None) return;
                     Log.Debug("Door Opened");
@@ -169,18 +168,15 @@ namespace SCPAI.Dumpster
                         Log.Debug($"Unknown execption thrown! Full Error --> {ue}");
                     }                   
                     ev.Door.Transform.gameObject.AddComponent<NavMeshLink>();
-                    NavMeshLink navLink = ev.Door.Transform.gameObject.GetComponent<NavMeshLink>();
-                    navLink.width = ev.Door.Transform.localScale.x; // or y or z idk
                     Main.Instance.ainav.currentNavSurface.AddData();
                 }
-                else if (ev.Door.ExactState != 0) //Fully Closed
+                else if (ev.Door.ExactState != 0 && !ev.Door.IsBroken) //Fully Closed
                 {
                     if (ev.Door.DoorLockType != Exiled.API.Enums.DoorLockType.None) return;
                     Log.Debug("Door Closed");
                     try
                     {
                         Destroy(ev.Door.Transform.gameObject.GetComponent<NavMeshLink>());
-
                         Log.Debug("NavMeshLink Deleted");
                     }
                     catch (NullReferenceException e)
@@ -209,6 +205,6 @@ namespace SCPAI.Dumpster
         {
             yield return Timing.WaitForSeconds(3.5f);
             MECExtensionMethods1.RunCoroutine((Main.Instance.ainav.SCP096Update(player, characterController)));
-        }
+        }   
     }
 }
