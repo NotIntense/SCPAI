@@ -215,12 +215,12 @@ namespace SCPAI.Dumpster
                     int layerMask = 8 << layerToIgnore;
                     layerMask = ~layerMask;
                     RaycastHit hit;
-                    if (Physics.Raycast(player.Position, Vector3.down, out hit, 10f, layerMask))
+                    if (Physics.Raycast(player.Position, Vector3.down, out hit, 10f))
                     {
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ"))
+                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore)
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
@@ -231,7 +231,7 @@ namespace SCPAI.Dumpster
                        
                     }
                     HashSet<string> obstacleNames = new();
-                    RaycastHit[] hits = Physics.SphereCastAll(player.Transform.position, radius, Vector3.forward, 0f, layerToIgnore);
+                    RaycastHit[] hits = Physics.SphereCastAll(player.Transform.position, radius, Vector3.forward, 5f, layerToIgnore);
                     foreach (RaycastHit Collidesr in hits)
                     {
                         if (Collidesr.transform.gameObject.GetComponent<NavMeshObstacle>()) Log.Debug("Object already has a NavMeshObstacle component!");
