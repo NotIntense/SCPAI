@@ -136,7 +136,7 @@ namespace SCPAI.Dumpster
                     }
                     if (Vector3.Distance(currentTarget.Position, player.Position) <= attackRange)
                     {
-                        Log.Info("Player In attack range");
+                        Log.Debug("Player In attack range");
                         if(player.Role.As<Scp096Role>().AttackPossible)
                         {
                             player.Role.As<Scp096Role>().Attack();
