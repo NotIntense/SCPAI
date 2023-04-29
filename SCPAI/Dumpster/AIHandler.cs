@@ -12,6 +12,7 @@ using UnityEngine;
 using Interactables.Interobjects.DoorUtils;
 using UnityEngine.AI;
 
+
 namespace SCPAI.Dumpster
 {
     public class AIHandler : MonoBehaviour
@@ -37,6 +38,8 @@ namespace SCPAI.Dumpster
             Player NewPlayer = new(newPlayer);
             NewPlayer.Transform.rotation = newPlayer.transform.rotation;
             NewPlayer.Transform.parent = newPlayer.transform;
+            newPlayer.AddComponent<NetworkIdentity>();
+            NetworkServer.Spawn(newPlayer);
             id = DummiesAmount;
             var fakeConnection = new FakeConnection(id++);
             hubPlayer = newPlayer.GetComponent<ReferenceHub>();
@@ -96,11 +99,11 @@ namespace SCPAI.Dumpster
                 hubPlayer.nicknameSync.UpdateNickname($"{ev.NewRole} AI");
                 if (ev.Player == null)
                 {
-                    Log.Info("idot");
+                    Log.Warn("AI Player object is null!");
                 }
                 if (characterController == null)
                 {
-                    Log.Info("idot2");
+                    Log.Warn("AI CharacterController is null!");
                 }
                 if (ev.NewRole.GetTeam() == Team.SCPs)
                 {
@@ -199,7 +202,7 @@ namespace SCPAI.Dumpster
             }
             catch(Exception e)
             {
-                //Im so goobius
+                Log.Debug(e);
             }
            
         }
@@ -208,6 +211,6 @@ namespace SCPAI.Dumpster
         {
             yield return Timing.WaitForSeconds(3.5f);
             MECExtensionMethods1.RunCoroutine((Main.Instance.ainav.SCP096Update(player, characterController)));
-        }   
+        }         
     }
 }
