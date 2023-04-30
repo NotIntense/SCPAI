@@ -57,6 +57,11 @@ namespace SCPAI.Dumpster
         public void UnRegisterEvents()
         {
             player = null;
+            Player.ChangingRole -= aihand.ChangeAIParameters;
+            Player.InteractingDoor -= aihand.DoorListtrack;
+            SCP096.AddingTarget -= aihand.AIRage;
+            Server.WaitingForPlayers -= aihand.SpawnAI;
+            Server.RestartingRound -= aihand.ReloadPlugin;
         }
 
         public static bool isAI(ReferenceHub hub)

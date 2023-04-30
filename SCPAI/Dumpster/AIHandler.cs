@@ -12,7 +12,6 @@ using UnityEngine;
 using Interactables.Interobjects.DoorUtils;
 using UnityEngine.AI;
 
-
 namespace SCPAI.Dumpster
 {
     public class AIHandler : MonoBehaviour
@@ -22,10 +21,9 @@ namespace SCPAI.Dumpster
         public CharacterController characterController;
         public float radius = 5f;
         public LayerMask layerMask;
-        public string UserID;
         public ReferenceHub hubPlayer;
         public IFpcRole fpcRole;
-
+        readonly System.Random rnd = new();
         public Dictionary<Player, Player> scp096targets = new Dictionary<Player, Player>();
         public Dictionary<Door, DoorAction> doorState = new();
 
@@ -33,21 +31,20 @@ namespace SCPAI.Dumpster
         private int id;
 
         public void SpawnAI()
-        {
+        {           
             newPlayer = Instantiate(NetworkManager.singleton.playerPrefab);
             Player NewPlayer = new(newPlayer);
-            NewPlayer.Transform.rotation = newPlayer.transform.rotation;
-            NewPlayer.Transform.parent = newPlayer.transform;
-            newPlayer.AddComponent<NetworkIdentity>();
             NetworkServer.Spawn(newPlayer);
-            id = DummiesAmount;
-            var fakeConnection = new FakeConnection(id++);
+            NewPlayer.Transform.rotation = newPlayer.transform.rotation;
+            NewPlayer.Transform.parent = newPlayer.transform;            
+            newPlayer.AddComponent<NetworkIdentity>();           
+            id = rnd.Next(1, 20);
+            var fakeConnection = new FakeConnection(id);
             hubPlayer = newPlayer.GetComponent<ReferenceHub>();
             characterController = newPlayer.GetComponent<CharacterController>();
             Main.Instance.Dummies.Add(hubPlayer);
             NetworkServer.AddPlayerForConnection(fakeConnection, newPlayer);
             hubPlayer.characterClassManager.UserId = $"AI-{id}";
-            UserID = $"AI-{id}";
             hubPlayer.enabled = true;
             hubPlayer.characterClassManager.syncMode = (SyncMode)ClientInstanceMode.Unverified;
             hubPlayer.nicknameSync.Network_myNickSync = "SCP-AI";
@@ -94,17 +91,9 @@ namespace SCPAI.Dumpster
 
         public void ChangeAIParameters(ChangingRoleEventArgs ev)
         {
-            if (ev.Player.UserId == UserID)
+            if (ev.Player.UserId == hubPlayer.characterClassManager.UserId)
             {
                 hubPlayer.nicknameSync.UpdateNickname($"{ev.NewRole} AI");
-                if (ev.Player == null)
-                {
-                    Log.Warn("AI Player object is null!");
-                }
-                if (characterController == null)
-                {
-                    Log.Warn("AI CharacterController is null!");
-                }
                 if (ev.NewRole.GetTeam() == Team.SCPs)
                 {
                     //MECExtensionMethods1.RunCoroutine(Main.Instance.ainav.SCPWander(ev.Player, characterController));
@@ -211,6 +200,6 @@ namespace SCPAI.Dumpster
         {
             yield return Timing.WaitForSeconds(3.5f);
             MECExtensionMethods1.RunCoroutine((Main.Instance.ainav.SCP096Update(player, characterController)));
-        }         
+        }      
     }
 }

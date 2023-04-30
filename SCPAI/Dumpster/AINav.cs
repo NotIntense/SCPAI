@@ -7,14 +7,13 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using System;
+using Mirror;
 
 namespace SCPAI.Dumpster
 {
     public class AINav : MonoBehaviour
     {
-        public Room currentRoamingRoom;
         public Door doorToMove = null;
-        public Vector3 currentRoamingRoomPOS;
         public Vector3 doorToMoveTo;
         public AINav Instance;
         public Player currentTarget;
@@ -31,7 +30,6 @@ namespace SCPAI.Dumpster
 
 
         public List<GameObject> generateNav = new List<GameObject>();
-        public List<Door> currentRoomDoors = new List<Door>();
         private int randomIndex;
 
         public void AddAgent()
@@ -47,6 +45,8 @@ namespace SCPAI.Dumpster
             scp096navMeshAgent.baseOffset = 1f;
             scp096navMeshAgent.autoRepath = true;
             scp096navMeshAgent.autoTraverseOffMeshLink = false;
+            scp096navMeshAgent.avoidancePriority = 5;
+            scp096navMeshAgent.height = 0.5f;
 
         }
         public void GenerateNavMesh()
@@ -54,8 +54,7 @@ namespace SCPAI.Dumpster
             foreach(Room room in Room.List)
             {
                 room.GameObject.AddComponent<NavMeshSurface>();
-                var navSurface = room.gameObject.GetComponent<NavMeshSurface>();
-                navSurface.voxelSize = 0.01f;
+                var navSurface = room.gameObject.GetComponent<NavMeshSurface>();               
                 navSurface.collectObjects = CollectObjects.Children;
                 navSurface.BuildNavMesh();
             }
@@ -71,33 +70,7 @@ namespace SCPAI.Dumpster
         }
         public IEnumerator<float> SCPWander(Player player, CharacterController controller)
         {
-            for(; ;)
-            {
-                if(currentRoamingRoom != player.CurrentRoom)
-                {
-                    currentRoamingRoom = player.CurrentRoom;
-                    currentRoamingRoomPOS = player.CurrentRoom.Position;
-                    currentRoomDoors.Clear();
-                    foreach(Door door in currentRoamingRoom.Doors)
-                    {
-                        currentRoomDoors.Add(door);
-                    }
-                }
-                foreach (Door door in currentRoamingRoom.Doors)
-                {
-                    if (!currentRoomDoors.Contains(door) && door.RequiredPermissions.RequiredPermissions == Interactables.Interobjects.DoorUtils.KeycardPermissions.None || door.RequiredPermissions.RequiredPermissions == Interactables.Interobjects.DoorUtils.KeycardPermissions.None || door.IsOpen)
-                    {
-                        currentRoomDoors.Add(door);
-                    }
-                }
-                Door randomDoor = currentRoomDoors[UnityEngine.Random.Range(0, currentRoomDoors.Count)];
-                scp096navMeshAgent.SetDestination(randomDoor.Position);
-                var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
-                var eulerAngles = Quaternion.LookRotation(randomDoor.Position - player.Position, Vector3.up).eulerAngles;
-                mouseLook.CurrentHorizontal = eulerAngles.y;
-                mouseLook.CurrentVertical = eulerAngles.x;                
-                yield return Timing.WaitForSeconds(0.5f);
-            }
+            yield break; // Temporary as its not started lol
         }
         public IEnumerator<float> SCP096Update(Player player, CharacterController controller)
         {
@@ -118,7 +91,6 @@ namespace SCPAI.Dumpster
                     }
                     if (currentTarget != null && currentTarget.IsDead && Main.Instance.aihand.scp096targets.Count > 0)
                     {
-                        Log.Debug("Target is dead but list is above 1");
                         Main.Instance.aihand.scp096targets.Remove(currentTarget);
 
                         System.Random rnd = new();
@@ -127,20 +99,11 @@ namespace SCPAI.Dumpster
                     }
                     else if (currentTarget != null && currentTarget.IsDead && Main.Instance.aihand.scp096targets.Count == 0)
                     {
-                        Log.Debug("All targets dead");
                         Main.Instance.aihand.scp096targets.Clear();
                         currentTarget = null;
                         player.Role.As<Scp096Role>().Calm(true);
                         player.Role.As<Scp096Role>().ClearTargets();
                         yield break;
-                    }
-                    if (Vector3.Distance(currentTarget.Position, player.Position) <= attackRange)
-                    {
-                        Log.Debug("Player In attack range");
-                        if(player.Role.As<Scp096Role>().AttackPossible)
-                        {
-                            player.Role.As<Scp096Role>().Attack();
-                        }
                     }
                     if (scp096navMeshAgent.isOnOffMeshLink)
                     {
@@ -154,7 +117,7 @@ namespace SCPAI.Dumpster
                             scp096navMeshAgent.CompleteOffMeshLink();
                         }
                     }
-                    if (scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathPartial || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid)
+                    if (scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathPartial || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid || player.CurrentRoom != currentTarget.CurrentRoom)
                     {
                         Log.Debug("Path Invalid");
                         Door closestDoor = null;
@@ -209,6 +172,11 @@ namespace SCPAI.Dumpster
                         }
                         if (doorToMove != null)
                         {
+                            if (player.Role.As<Scp096Role>().AttackPossible)
+                            {
+                                player.Role.As<Scp096Role>().Attack();
+                            }
+                            Log.Debug("Moving towards player _ 1");
                             scp096navMeshAgent.SetDestination(doorToMove.Transform.position);
                             if (Vector3.Distance(scp096navMeshAgent.transform.position, doorToMove.Transform.position) < 0.1f)
                             {
@@ -218,31 +186,42 @@ namespace SCPAI.Dumpster
                         }
                         else
                         {
+                            if (player.Role.As<Scp096Role>().AttackPossible)
+                            {
+                                player.Role.As<Scp096Role>().Attack();
+                            }
+                            Log.Debug("Moving towards player _ 2");
                             scp096navMeshAgent.SetDestination(currentTarget.Position);
                         }
                     }
                     else
                     {
+                        if (player.Role.As<Scp096Role>().AttackPossible)
+                        {
+                            player.Role.As<Scp096Role>().Attack();
+                        }
                         scp096navMeshAgent.SetDestination(currentTarget.Position);
                     }                              
 
-                    if (currentRoamingRoom = currentTarget.CurrentRoom)
+                    if (player.CurrentRoom == currentTarget.CurrentRoom)
                     {
                         var mouseLookInsameroom = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
                         mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
-                        Vector3 rotation = new Vector3(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
+                        Vector3 rotation = new(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
+                        controller.transform.rotation = Quaternion.Euler(rotation);
                     }
                     else
                     {
                         var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
-                        var eulerAngles = Quaternion.LookRotation(currentRoamingRoom.Position - player.Position, Vector3.up).eulerAngles;
+                        var eulerAngles = Quaternion.LookRotation(player.CurrentRoom.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLook.CurrentHorizontal = eulerAngles.y;
                         mouseLook.CurrentVertical = eulerAngles.x;
                         Vector3 rotation = new Vector3(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
+                        controller.transform.rotation = Quaternion.Euler(rotation);
                     }
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
@@ -253,21 +232,22 @@ namespace SCPAI.Dumpster
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider"))
+                        if(player.CurrentRoom.Type == Exiled.API.Enums.RoomType.HczServers)
+                        {
+                            scp096navMeshAgent.transform.position = currentTarget.Position;
+                        }
+                        else if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
                             navSurface.size = hitObject.transform.localScale;
-                            //navSurface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
                             navSurface.collectObjects = CollectObjects.Children;
                             navSurface.BuildNavMesh();
-                        }
-                       
+                        }                      
                     }                   
                 }
-                catch(ArgumentOutOfRangeException ar)
+                catch(ArgumentOutOfRangeException)
                 {
-                    Log.Debug(ar);
                     currentTarget = null;
                     Main.Instance.aihand.scp096targets.Clear();
                     player.Role.As<Scp096Role>().Calm(true);
@@ -276,7 +256,7 @@ namespace SCPAI.Dumpster
                 }
                 catch (Exception e)
                 {
-                    Log.Debug("Unless AI in-game is not functioning properly, ignore these messages :" + e);
+                    Log.Debug(e);
                 }
                 yield return Timing.WaitForSeconds(0.1f);
             }
