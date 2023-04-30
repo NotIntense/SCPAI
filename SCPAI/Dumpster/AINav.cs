@@ -45,7 +45,6 @@ namespace SCPAI.Dumpster
             scp096navMeshAgent.baseOffset = 1f;
             scp096navMeshAgent.autoRepath = true;
             scp096navMeshAgent.autoTraverseOffMeshLink = false;
-            scp096navMeshAgent.avoidancePriority = 5;
             scp096navMeshAgent.height = 0.5f;
 
         }
@@ -186,12 +185,15 @@ namespace SCPAI.Dumpster
                         }
                         else
                         {
-                            if (player.Role.As<Scp096Role>().AttackPossible)
+                            foreach (Door door in player.CurrentRoom.Doors)
                             {
-                                player.Role.As<Scp096Role>().Attack();
+                                float distance = Vector3.Distance(player.Position, door.Transform.position);
+                                if (distance < closestDoorDistance)
+                                {
+                                    closestDoorDistance = distance;
+                                    closestDoor = door;
+                                }
                             }
-                            Log.Debug("Moving towards player _ 2");
-                            scp096navMeshAgent.SetDestination(currentTarget.Position);
                         }
                     }
                     else
@@ -216,7 +218,7 @@ namespace SCPAI.Dumpster
                     else
                     {
                         var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
-                        var eulerAngles = Quaternion.LookRotation(player.CurrentRoom.Position - player.Position, Vector3.up).eulerAngles;
+                        var eulerAngles = Quaternion.LookRotation(doorToMove.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLook.CurrentHorizontal = eulerAngles.y;
                         mouseLook.CurrentVertical = eulerAngles.x;
                         Vector3 rotation = new Vector3(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);

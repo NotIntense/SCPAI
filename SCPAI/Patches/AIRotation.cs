@@ -23,7 +23,7 @@ namespace SCPAI.Patches
             {
                 new(OpCodes.Ldarg_0),
                 new(OpCodes.Ldfld, AccessTools.Field(typeof(FpcMouseLook), nameof(FpcMouseLook._hub))),
-                new(OpCodes.Call, AccessTools.Method(typeof(Main), nameof(Main.Instance.isAI))),
+                new(OpCodes.Call, AccessTools.Method(typeof(Main), nameof(Main.Instance.IsAI))),
                 new(OpCodes.Brtrue_S, skip)
             });
 

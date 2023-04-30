@@ -49,6 +49,8 @@ namespace SCPAI.Dumpster
             player = new Player();
             Player.ChangingRole += aihand.ChangeAIParameters;
             Player.InteractingDoor += aihand.DoorListtrack;
+            Player.Kicking += aihand.AIKick;
+            Player.Banning += aihand.AIBan;
             SCP096.AddingTarget += aihand.AIRage;
             Server.WaitingForPlayers += aihand.SpawnAI;
             Server.RestartingRound += aihand.ReloadPlugin;
@@ -59,12 +61,14 @@ namespace SCPAI.Dumpster
             player = null;
             Player.ChangingRole -= aihand.ChangeAIParameters;
             Player.InteractingDoor -= aihand.DoorListtrack;
+            Player.Kicking -= aihand.AIKick;
+            Player.Banning -= aihand.AIBan;
             SCP096.AddingTarget -= aihand.AIRage;
             Server.WaitingForPlayers -= aihand.SpawnAI;
             Server.RestartingRound -= aihand.ReloadPlugin;
         }
 
-        public static bool isAI(ReferenceHub hub)
+        public static bool IsAI(ReferenceHub hub)
         {
             bool isDummy = Instance.Dummies.Contains(hub);
             return isDummy;

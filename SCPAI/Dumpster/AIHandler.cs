@@ -17,12 +17,13 @@ namespace SCPAI.Dumpster
     public class AIHandler : MonoBehaviour
     {
         public GameObject newPlayer;
-        public Player AIPlayer;
+        public Player NewPlayer;
         public CharacterController characterController;
         public float radius = 5f;
         public LayerMask layerMask;
         public ReferenceHub hubPlayer;
         public IFpcRole fpcRole;
+        public int type = 1;
         readonly System.Random rnd = new();
         public Dictionary<Player, Player> scp096targets = new Dictionary<Player, Player>();
         public Dictionary<Door, DoorAction> doorState = new();
@@ -33,7 +34,7 @@ namespace SCPAI.Dumpster
         public void SpawnAI()
         {           
             newPlayer = Instantiate(NetworkManager.singleton.playerPrefab);
-            Player NewPlayer = new(newPlayer);
+            NewPlayer = new(newPlayer);
             NetworkServer.Spawn(newPlayer);
             NewPlayer.Transform.rotation = newPlayer.transform.rotation;
             NewPlayer.Transform.parent = newPlayer.transform;            
@@ -47,10 +48,15 @@ namespace SCPAI.Dumpster
             hubPlayer.characterClassManager.UserId = $"AI-{id}";
             hubPlayer.enabled = true;
             hubPlayer.characterClassManager.syncMode = (SyncMode)ClientInstanceMode.Unverified;
-            hubPlayer.nicknameSync.Network_myNickSync = "SCP-AI";
+            hubPlayer.nicknameSync.Network_myNickSync = $"AI-{id}";
             hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, reason: RoleChangeReason.RemoteAdmin);
             hubPlayer.characterClassManager.GodMode = false;
             Player.Dictionary.Add(newPlayer, NewPlayer);
+            if(Main.Instance.Config.NPCBadgeEnabled)
+            {
+                NewPlayer.RankName = Main.Instance.Config.NPCBadgeName;
+                NewPlayer.RankColor = Main.Instance.Config.NPCBadgeColor;
+            }
             fpcRole = Main.Instance.aihand.newPlayer.GetComponent<IFpcRole>();
             GenNavStart();
         }
@@ -71,7 +77,7 @@ namespace SCPAI.Dumpster
                 Log.Error($"Unknown error occured, send error message to NotIntense#1613 on discord : {e}");
             }
             if (Main.Instance.Config.LogStartup) Log.Info("Succesfully added Agent component!");
-            if (!Main.Instance.Config.generateNavMeshOnWaiting) Log.Warn("NavMesh will only generate when needed, and this can cause serious performance issues!");
+            if (!Main.Instance.Config.generateNavMeshOnWaiting) Log.Warn("NavMesh will only generate when needed, and this can cause performance issues!");
             if (Main.Instance.Config.generateNavMeshOnWaiting) Log.Info("Generating NavMesh...");
             try
             {
@@ -194,6 +200,25 @@ namespace SCPAI.Dumpster
                 Log.Debug(e);
             }
            
+        }
+
+        public void AIKick(KickingEventArgs ev)
+        {
+            if(ev.Target.UserId == hubPlayer.characterClassManager.UserId)
+            {
+                Destroy(hubPlayer);
+                Destroy(newPlayer);
+                Destroy(NewPlayer.GameObject);
+            }
+        }
+        public void AIBan(BanningEventArgs ev)
+        {
+            if (ev.Target.UserId == hubPlayer.characterClassManager.UserId)
+            {
+                Destroy(hubPlayer);
+                Destroy(newPlayer);
+                Destroy(NewPlayer.GameObject);
+            }
         }
 
         public IEnumerator<float> WaitForEnrage(Player player)
