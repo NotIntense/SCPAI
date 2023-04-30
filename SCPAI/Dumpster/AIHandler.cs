@@ -216,6 +216,7 @@ namespace SCPAI.Dumpster
         {
             if (ev.Target.UserId == hubPlayer.characterClassManager.UserId)
             {
+                ev.Player.ShowHint("You cannot ban AI players!", 5);
                 Log.Warn("AI was attempted to be banned! Blocking event!");
                 ev.IsAllowed = false;
             }
