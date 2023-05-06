@@ -29,7 +29,6 @@ namespace SCPAI.Dumpster
 
         public int DummiesAmount = Main.Instance.Dummies.Count;
         private int id;
-
         public void SpawnAI()
         {
             newPlayer = Instantiate(NetworkManager.singleton.playerPrefab);
@@ -48,7 +47,7 @@ namespace SCPAI.Dumpster
             hubPlayer.enabled = true;
             hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Unverified;
             hubPlayer.nicknameSync.Network_myNickSync = $"AI-{id}";
-            hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, reason: RoleChangeReason.RemoteAdmin);
+            hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, RoleChangeReason.RemoteAdmin);
             hubPlayer.characterClassManager.GodMode = false;
             NewPlayer.RemoteAdminPermissions = PlayerPermissions.AFKImmunity;
             Player.Dictionary.Add(newPlayer, NewPlayer);

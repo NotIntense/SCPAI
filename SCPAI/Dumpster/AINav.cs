@@ -38,9 +38,8 @@ namespace SCPAI.Dumpster
             scp096navMeshAgent.baseOffset = 1f;
             scp096navMeshAgent.autoRepath = true;
             scp096navMeshAgent.autoTraverseOffMeshLink = false;
-            scp096navMeshAgent.height = 0.5f;
-            scp096navMeshAgent.updateRotation = false;
-            scp096navMeshAgent.updateUpAxis = false;
+            scp096navMeshAgent.height = Main.Instance.aihand.characterController.height;
+            scp096navMeshAgent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         }
 
         public void GenerateNavMesh()
@@ -135,7 +134,6 @@ namespace SCPAI.Dumpster
                                 closestDoor = door;
                                 doorLook = door;
                                 Log.Debug("closestDoor is " + closestDoor.Name);
-                                break;
                             }
                         }
 
@@ -156,12 +154,17 @@ namespace SCPAI.Dumpster
                                     doorLook = null;
                                     closestDoor = null;
                                     scp096navMeshAgent.ResetPath();
+                                    scp096navMeshAgent.SetDestination(currentTarget.Position);
                                 }
                                 catch (Exception e)
                                 {
                                     Log.Error("Error in : if(closestDoor != null)" + e);
                                 }
                             }
+                        }
+                        else
+                        {
+                            scp096navMeshAgent.SetDestination(currentTarget.Position);
                         }
                     }
                     else
