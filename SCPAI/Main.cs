@@ -1,11 +1,11 @@
 ﻿using Exiled.API.Enums;
 using Exiled.API.Features;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using Player = Exiled.Events.Handlers.Player;
 using SCP096 = Exiled.Events.Handlers.Scp096;
 using Server = Exiled.Events.Handlers.Server;
-using HarmonyLib;
 
 namespace SCPAI.Dumpster
 {
@@ -42,7 +42,7 @@ namespace SCPAI.Dumpster
             base.OnDisabled();
         }
 
-        public Player player;        
+        public Player player;
 
         public void RegisterEvents()
         {
@@ -54,6 +54,7 @@ namespace SCPAI.Dumpster
             SCP096.AddingTarget += aihand.AIRage;
             Server.WaitingForPlayers += aihand.SpawnAI;
             Server.RestartingRound += aihand.ReloadPlugin;
+            Player.Died += aihand.AIDeath;
         }
 
         public void UnRegisterEvents()
@@ -66,6 +67,7 @@ namespace SCPAI.Dumpster
             SCP096.AddingTarget -= aihand.AIRage;
             Server.WaitingForPlayers -= aihand.SpawnAI;
             Server.RestartingRound -= aihand.ReloadPlugin;
+            Player.Died -= aihand.AIDeath;
         }
 
         public static bool IsAI(ReferenceHub hub)

@@ -1,5 +1,4 @@
-﻿using Exiled.API.Features;
-using Mirror;
+﻿using Mirror;
 using System;
 
 namespace SCPAI.Dumpster

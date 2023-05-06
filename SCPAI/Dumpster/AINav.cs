@@ -2,19 +2,18 @@
 using Exiled.API.Features.Roles;
 using MEC;
 using PlayerRoles.FirstPersonControl;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-using System;
-using Mirror;
 
 namespace SCPAI.Dumpster
 {
     public class AINav : MonoBehaviour
     {
-        public Door doorToMove = null;
         public Vector3 doorToMoveTo;
+        public Door doorLook;
         public AINav Instance;
         public Player currentTarget;
         public int buttonIndex;
@@ -23,11 +22,7 @@ namespace SCPAI.Dumpster
         public int numoftargets;
         public float distanceThreshold = 0.5f;
         public float attackRange = 3.0f;
-        public float radius = 2.0f; 
-        public int numRays = 16;
-        public float rayDistance = 2.0f;
-        SphereCollider obstacleDetectionCollider;
-
+        public float radius = 2.0f;
 
         public List<GameObject> generateNav = new List<GameObject>();
         private int randomIndex;
@@ -35,8 +30,6 @@ namespace SCPAI.Dumpster
         public void AddAgent()
         {
             scp096navMeshAgent = Main.Instance.aihand.newPlayer.gameObject.AddComponent<NavMeshAgent>();
-            obstacleDetectionCollider = Main.Instance.aihand.newPlayer.AddComponent<SphereCollider>();
-            obstacleDetectionCollider.radius = radius;
             scp096navMeshAgent.radius = 1f;
             scp096navMeshAgent.acceleration = 40f;
             scp096navMeshAgent.speed = 8.5f;
@@ -46,19 +39,27 @@ namespace SCPAI.Dumpster
             scp096navMeshAgent.autoRepath = true;
             scp096navMeshAgent.autoTraverseOffMeshLink = false;
             scp096navMeshAgent.height = 0.5f;
-
+            scp096navMeshAgent.updateRotation = false;
+            scp096navMeshAgent.updateUpAxis = false;
         }
+
         public void GenerateNavMesh()
         {
-            foreach(Room room in Room.List)
+            foreach (Room room in Room.List)
             {
                 room.GameObject.AddComponent<NavMeshSurface>();
-                var navSurface = room.gameObject.GetComponent<NavMeshSurface>();               
+                var navSurface = room.gameObject.GetComponent<NavMeshSurface>();
                 navSurface.collectObjects = CollectObjects.Children;
                 navSurface.BuildNavMesh();
             }
-
-            foreach(Lift lift in Lift.List)
+            foreach (Door door in Door.List)
+            {
+                if(door.IsFullyClosed)
+                {
+                    door.Transform.gameObject.AddComponent<NavMeshObstacle>();
+                }
+            }
+            foreach (Lift lift in Lift.List)
             {
                 lift.GameObject.AddComponent<NavMeshLink>();
                 lift.GameObject.AddComponent<NavMeshSurface>();
@@ -67,10 +68,12 @@ namespace SCPAI.Dumpster
                 liftSur.BuildNavMesh();
             }
         }
+
         public IEnumerator<float> SCPWander(Player player, CharacterController controller)
         {
             yield break; // Temporary as its not started lol
         }
+
         public IEnumerator<float> SCP096Update(Player player, CharacterController controller)
         {
             for (; ; )
@@ -116,139 +119,93 @@ namespace SCPAI.Dumpster
                             scp096navMeshAgent.CompleteOffMeshLink();
                         }
                     }
-                    if (scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathPartial || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid || player.CurrentRoom != currentTarget.CurrentRoom)
+                    if (scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathPartial)
                     {
                         Log.Debug("Path Invalid");
                         Door closestDoor = null;
-                        float closestDoorDistance = float.MaxValue;
+                        float closestDoorWeightedDistance = float.MaxValue;
                         foreach (Door door in player.CurrentRoom.Doors)
                         {
-                            float distance = Vector3.Distance(currentTarget.Position, door.Transform.position);
-                            if (distance < closestDoorDistance)
+                            float aiToDoorDistance = Vector3.Distance(scp096navMeshAgent.transform.position, door.Transform.position);
+                            float playerToDoorDistance = Vector3.Distance(currentTarget.Position, door.Transform.position);
+                            float weightedDistance = aiToDoorDistance + playerToDoorDistance;
+                            if (weightedDistance < closestDoorWeightedDistance)
                             {
-                                closestDoorDistance = distance;
+                                closestDoorWeightedDistance = weightedDistance;
                                 closestDoor = door;
-                            }
-                        }
-                        if (closestDoor == null)
-                        {
-                            foreach (Door door in player.CurrentRoom.Doors)
-                            {
-                                float distance = Vector3.Distance(player.Position, door.Transform.position);
-                                if (distance < closestDoorDistance)
-                                {
-                                    closestDoorDistance = distance;
-                                    closestDoor = door;
-                                }
+                                doorLook = door;
+                                Log.Debug("closestDoor is " + closestDoor.Name);
+                                break;
                             }
                         }
 
                         if (closestDoor != null)
                         {
-                            if (Vector3.Distance(scp096navMeshAgent.transform.position, closestDoor.Transform.position) <= attackRange)
+                            scp096navMeshAgent.SetDestination(closestDoor.Position);
+                            if (Vector3.Distance(closestDoor.Position, player.Position) <= attackRange || closestDoor.IsBroken)
                             {
-                                closestDoor.DamageDoor(100, type: Interactables.Interobjects.DoorUtils.DoorDamageType.Scp096);
+                                Log.Debug($"{closestDoor.Name} in attack range");
+                                closestDoor.DamageDoor(1000, Interactables.Interobjects.DoorUtils.DoorDamageType.Scp096);
                                 try
                                 {
                                     Destroy(closestDoor.Transform.gameObject.GetComponent<NavMeshObstacle>());
                                     closestDoor.Transform.gameObject.AddComponent<NavMeshLink>();
                                     NavMeshLink navLink = closestDoor.Transform.gameObject.GetComponent<NavMeshLink>();
                                     navLink.bidirectional = true;
-                                    navLink.width = closestDoor.Transform.position.z;
-                                    scp096navMeshAgent.ResetPath();
-                                    scp096navMeshAgent.SetDestination(closestDoor.Transform.position);
-                                    doorToMove = null;
+                                    navLink.width = closestDoor.Transform.position.y;
+                                    doorLook = null;
+                                    closestDoor = null;
+                                    scp096navMeshAgent.ResetPath();                                   
                                 }
                                 catch (Exception e)
                                 {
-                                    Log.Error(e);
+                                    Log.Error("Error in : if(closestDoor != null)" + e);
                                 }
                             }
-                            else
-                            {
-                                doorToMove = closestDoor;
-                            }
-                        }
-                        if (doorToMove != null)
-                        {
-                            if (player.Role.As<Scp096Role>().AttackPossible)
-                            {
-                                player.Role.As<Scp096Role>().Attack();
-                            }
-                            Log.Debug("Moving towards player _ 1");
-                            scp096navMeshAgent.SetDestination(doorToMove.Transform.position);
-                            if (Vector3.Distance(scp096navMeshAgent.transform.position, doorToMove.Transform.position) < 0.1f)
-                            {
-                                scp096navMeshAgent.ResetPath();
-                                doorToMove = null;
-                            }
-                        }
-                        else
-                        {
-                            foreach (Door door in player.CurrentRoom.Doors)
-                            {
-                                float distance = Vector3.Distance(player.Position, door.Transform.position);
-                                if (distance < closestDoorDistance)
-                                {
-                                    closestDoorDistance = distance;
-                                    closestDoor = door;
-                                }
-                            }
-                        }
+                        }                     
                     }
                     else
                     {
-                        if (player.Role.As<Scp096Role>().AttackPossible)
-                        {
-                            player.Role.As<Scp096Role>().Attack();
-                        }
                         scp096navMeshAgent.SetDestination(currentTarget.Position);
-                    }                              
-
-                    if (player.CurrentRoom == currentTarget.CurrentRoom)
+                    }
+                    if (player.CurrentRoom == currentTarget.CurrentRoom || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathComplete) 
                     {
                         var mouseLookInsameroom = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
-                        mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
-                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
+                        mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.x;
+                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.y;
                         Vector3 rotation = new(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
-                        controller.transform.rotation = Quaternion.Euler(rotation);
                     }
                     else
                     {
                         var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
-                        var eulerAngles = Quaternion.LookRotation(doorToMove.Position - player.Position, Vector3.up).eulerAngles;
-                        mouseLook.CurrentHorizontal = eulerAngles.y;
-                        mouseLook.CurrentVertical = eulerAngles.x;
-                        Vector3 rotation = new Vector3(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
+                        var eulerAngles = Quaternion.LookRotation(doorLook.Position - player.Position, Vector3.up).eulerAngles;
+                        mouseLook.CurrentHorizontal = eulerAngles.x;
+                        mouseLook.CurrentVertical = eulerAngles.y;
+                        Vector3 rotation = new(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
-                        controller.transform.rotation = Quaternion.Euler(rotation);
                     }
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
-                    layerMask = ~layerMask;                
+                    layerMask = ~layerMask;
                     RaycastHit hit;
-                    if (Physics.Raycast(player.Position, Vector3.down, out hit, 5f))
+                    if (Physics.Raycast(player.Position, Vector3.down, out hit, 3f))
                     {
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
                         currentNavSurface = navSurface;
-                        if(player.CurrentRoom.Type == Exiled.API.Enums.RoomType.HczServers)
-                        {
-                            scp096navMeshAgent.transform.position = currentTarget.Position;
-                        }
-                        else if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider"))
+                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider") && !hitObject.name.StartsWith("workbench") && !hitObject.name.StartsWith("mixamorig"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
                             navSurface.size = hitObject.transform.localScale;
                             navSurface.collectObjects = CollectObjects.Children;
                             navSurface.BuildNavMesh();
-                        }                      
-                    }                   
+                        }
+                    }
                 }
-                catch(ArgumentOutOfRangeException)
+                catch (ArgumentOutOfRangeException)
                 {
                     currentTarget = null;
                     Main.Instance.aihand.scp096targets.Clear();
@@ -260,9 +217,12 @@ namespace SCPAI.Dumpster
                 {
                     Log.Debug(e);
                 }
+                if(currentTarget != null && (currentTarget.Transform.position - player.Transform.position).sqrMagnitude < attackRange)
+                {
+                    player.Role.As<Scp096Role>().Attack();
+                }
                 yield return Timing.WaitForSeconds(0.1f);
             }
         }
-
     }
 }

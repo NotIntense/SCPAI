@@ -2,6 +2,7 @@
 using Exiled.API.Features.Roles;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Scp096;
+using Interactables.Interobjects.DoorUtils;
 using MEC;
 using Mirror;
 using PlayerRoles;
@@ -9,7 +10,6 @@ using PlayerRoles.FirstPersonControl;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Interactables.Interobjects.DoorUtils;
 using UnityEngine.AI;
 
 namespace SCPAI.Dumpster
@@ -23,42 +23,43 @@ namespace SCPAI.Dumpster
         public LayerMask layerMask;
         public ReferenceHub hubPlayer;
         public IFpcRole fpcRole;
-        public int type = 1;
-        readonly System.Random rnd = new();
-        public Dictionary<Player, Player> scp096targets = new Dictionary<Player, Player>();
+        private readonly System.Random rnd = new();
+        public Dictionary<Player, Player> scp096targets = new();
         public Dictionary<Door, DoorAction> doorState = new();
 
         public int DummiesAmount = Main.Instance.Dummies.Count;
         private int id;
 
         public void SpawnAI()
-        {           
+        {
             newPlayer = Instantiate(NetworkManager.singleton.playerPrefab);
             NewPlayer = new(newPlayer);
             NetworkServer.Spawn(newPlayer);
             NewPlayer.Transform.rotation = newPlayer.transform.rotation;
-            NewPlayer.Transform.parent = newPlayer.transform;            
-            newPlayer.AddComponent<NetworkIdentity>();           
+            NewPlayer.Transform.parent = newPlayer.transform;
+            newPlayer.AddComponent<NetworkIdentity>();
             id = rnd.Next(1, 20);
             var fakeConnection = new FakeConnection(id);
             hubPlayer = newPlayer.GetComponent<ReferenceHub>();
             characterController = newPlayer.GetComponent<CharacterController>();
             Main.Instance.Dummies.Add(hubPlayer);
             NetworkServer.AddPlayerForConnection(fakeConnection, newPlayer);
-            hubPlayer.characterClassManager.UserId = $"AI-{id}";
+            hubPlayer.characterClassManager.UserId = $"76561199221037417@steam";
             hubPlayer.enabled = true;
-            hubPlayer.characterClassManager.syncMode = (SyncMode)ClientInstanceMode.Unverified;
+            hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Unverified;
             hubPlayer.nicknameSync.Network_myNickSync = $"AI-{id}";
             hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, reason: RoleChangeReason.RemoteAdmin);
-            hubPlayer.characterClassManager.GodMode = false;
+            hubPlayer.characterClassManager.GodMode = false;            
+            NewPlayer.RemoteAdminPermissions = PlayerPermissions.AFKImmunity;
             Player.Dictionary.Add(newPlayer, NewPlayer);
-            if(Main.Instance.Config.NPCBadgeEnabled)
+            if (Main.Instance.Config.NPCBadgeEnabled)
             {
                 NewPlayer.RankName = Main.Instance.Config.NPCBadgeName;
                 NewPlayer.RankColor = Main.Instance.Config.NPCBadgeColor;
             }
             fpcRole = Main.Instance.aihand.newPlayer.GetComponent<IFpcRole>();
             GenNavStart();
+
         }
 
         public void GenNavStart()
@@ -106,6 +107,7 @@ namespace SCPAI.Dumpster
                 }
             }
         }
+
         public void AIRage(AddingTargetEventArgs ev)
         {
             if (ev.Player.ReferenceHub == hubPlayer)
@@ -114,31 +116,17 @@ namespace SCPAI.Dumpster
                 {
                     scp096targets.Add(ev.Target, ev.Target);
                 }
-                
+
                 ev.Player.Role.Is(out Scp096Role role);
-                role.Enrage(100000000);
-                if(scp096targets.Count > 0)
+                role.Enrage(10000);
+                if (scp096targets.Count > 0)
                 {
-                    role.EnragedTimeLeft = 10000000;
+                    role.EnragedTimeLeft = 10000;
                 }
                 MECExtensionMethods1.RunCoroutine(WaitForEnrage(ev.Player));
             }
         }
-    
-        public void ReloadPlugin()
-        {
-            if (Main.Instance.Dummies.Count > 1)
-            {
-                foreach (ReferenceHub hub in Main.Instance.Dummies)
-                {
-                    Destroy(hub);
-                }
-            }
-        }
-        public bool IsDummy(ReferenceHub hub)
-        {
-            return Main.Instance.Dummies.Contains(hub);
-        }
+
         public void DoorListtrack(InteractingDoorEventArgs ev)
         {
             try
@@ -146,7 +134,7 @@ namespace SCPAI.Dumpster
                 if (!doorState.ContainsKey(ev.Door))
                 {
                     doorState.Add(ev.Door, (DoorAction)ev.Door.ExactState);
-                }             
+                }
                 if (ev.Door.ExactState != 1 && !ev.Door.IsBroken) //Fully Open
                 {
                     if (ev.Door.DoorLockType != Exiled.API.Enums.DoorLockType.None) return;
@@ -161,15 +149,14 @@ namespace SCPAI.Dumpster
                     {
                         Log.Debug($"Unable to delete NavMeshObstacle component! Error --> {e}");
                     }
-                    catch(Exception ue)
+                    catch (Exception ue)
                     {
                         Log.Debug($"Unknown execption thrown! Full Error --> {ue}");
-                    }                   
+                    }
                     ev.Door.Transform.gameObject.AddComponent<NavMeshLink>();
                     NavMeshLink navLink = ev.Door.Transform.gameObject.GetComponent<NavMeshLink>();
                     navLink.bidirectional = true;
-                    navLink.width = ev.Door.Transform.position.z;
-                    Main.Instance.ainav.currentNavSurface.AddData();
+                    navLink.width = ev.Door.Transform.position.y;
                 }
                 else if (ev.Door.ExactState != 0 && !ev.Door.IsBroken) //Fully Closed
                 {
@@ -192,19 +179,17 @@ namespace SCPAI.Dumpster
                     ev.Door.Transform.gameObject.AddComponent<NavMeshObstacle>();
                     NavMeshObstacle navObj = ev.Door.Transform.gameObject.GetComponent<NavMeshObstacle>();
                     navObj.carving = true;
-                    Main.Instance.ainav.currentNavSurface.AddData();
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.Debug(e);
             }
-           
         }
 
         public void AIKick(KickingEventArgs ev)
         {
-            if(ev.Target.UserId == hubPlayer.characterClassManager.UserId)
+            if (ev.Target.UserId == hubPlayer.characterClassManager.UserId)
             {
                 Log.Warn("AI has been kicked!");
                 Destroy(hubPlayer);
@@ -212,20 +197,43 @@ namespace SCPAI.Dumpster
                 Destroy(NewPlayer.GameObject);
             }
         }
+
         public void AIBan(BanningEventArgs ev)
         {
             if (ev.Target.UserId == hubPlayer.characterClassManager.UserId)
             {
-                ev.Player.ShowHint("You cannot ban AI players!", 5);
+                ev.Player.Broadcast(5, "You cannot ban AI players!");
                 Log.Warn("AI was attempted to be banned! Blocking event!");
                 ev.IsAllowed = false;
             }
+        }
+        public void AIDeath(DiedEventArgs ev)
+        {
+            if(ev.Player.ReferenceHub == hubPlayer)
+            {
+                StopAllCoroutines();
+            }
+        }
+        public void ReloadPlugin()
+        {
+            if (Main.Instance.Dummies.Count > 1)
+            {
+                foreach (ReferenceHub hub in Main.Instance.Dummies)
+                {
+                    Destroy(hub);
+                }
+            }
+        }
+
+        public bool IsDummy(ReferenceHub hub)
+        {
+            return Main.Instance.Dummies.Contains(hub);
         }
 
         public IEnumerator<float> WaitForEnrage(Player player)
         {
             yield return Timing.WaitForSeconds(3.5f);
             MECExtensionMethods1.RunCoroutine((Main.Instance.ainav.SCP096Update(player, characterController)));
-        }      
+        }
     }
 }

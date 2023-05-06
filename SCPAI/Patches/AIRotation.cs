@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Reflection.Emit;
-using HarmonyLib;
+﻿using HarmonyLib;
 using NorthwoodLib.Pools;
 using PlayerRoles.FirstPersonControl;
 using SCPAI.Dumpster;
+using System.Collections.Generic;
+using System.Reflection.Emit;
 
 namespace SCPAI.Patches
 {

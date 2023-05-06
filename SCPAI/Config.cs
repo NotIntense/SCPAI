@@ -16,10 +16,13 @@ namespace SCPAI
 
         [Description("Genertates most of the required NavMeshes while waiting for players, instead of generating when it needs it. (RECOMMENED TO LEAVE TRUE)")]
         public bool generateNavMeshOnWaiting { get; set; } = true;
+
         [Description("Gives and shows a badge on the AI")]
         public bool NPCBadgeEnabled { get; set; } = true;
+
         [Description("If NPCBadge is enabled, sets the color")]
         public string NPCBadgeColor { get; set; } = "aqua";
+
         [Description("If NPCBadge is enabled, sets the name")]
         public string NPCBadgeName { get; set; } = "NPC";
     }
