@@ -49,7 +49,7 @@ namespace SCPAI.Dumpster
             hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Unverified;
             hubPlayer.nicknameSync.Network_myNickSync = $"AI-{id}";
             hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, reason: RoleChangeReason.RemoteAdmin);
-            hubPlayer.characterClassManager.GodMode = false;            
+            hubPlayer.characterClassManager.GodMode = false;
             NewPlayer.RemoteAdminPermissions = PlayerPermissions.AFKImmunity;
             Player.Dictionary.Add(newPlayer, NewPlayer);
             if (Main.Instance.Config.NPCBadgeEnabled)
@@ -59,7 +59,6 @@ namespace SCPAI.Dumpster
             }
             fpcRole = Main.Instance.aihand.newPlayer.GetComponent<IFpcRole>();
             GenNavStart();
-
         }
 
         public void GenNavStart()
@@ -207,13 +206,15 @@ namespace SCPAI.Dumpster
                 ev.IsAllowed = false;
             }
         }
+
         public void AIDeath(DiedEventArgs ev)
         {
-            if(ev.Player.ReferenceHub == hubPlayer)
+            if (ev.Player.ReferenceHub == hubPlayer)
             {
                 StopAllCoroutines();
             }
         }
+
         public void ReloadPlugin()
         {
             if (Main.Instance.Dummies.Count > 1)

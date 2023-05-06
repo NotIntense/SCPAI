@@ -54,7 +54,7 @@ namespace SCPAI.Dumpster
             }
             foreach (Door door in Door.List)
             {
-                if(door.IsFullyClosed)
+                if (door.IsFullyClosed)
                 {
                     door.Transform.gameObject.AddComponent<NavMeshObstacle>();
                 }
@@ -155,25 +155,25 @@ namespace SCPAI.Dumpster
                                     navLink.width = closestDoor.Transform.position.y;
                                     doorLook = null;
                                     closestDoor = null;
-                                    scp096navMeshAgent.ResetPath();                                   
+                                    scp096navMeshAgent.ResetPath();
                                 }
                                 catch (Exception e)
                                 {
                                     Log.Error("Error in : if(closestDoor != null)" + e);
                                 }
                             }
-                        }                     
+                        }
                     }
                     else
                     {
                         scp096navMeshAgent.SetDestination(currentTarget.Position);
                     }
-                    if (player.CurrentRoom == currentTarget.CurrentRoom || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathComplete) 
+                    if (player.CurrentRoom == currentTarget.CurrentRoom || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathComplete)
                     {
                         var mouseLookInsameroom = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
-                        mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.x;
-                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.y;
+                        mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
+                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
                         Vector3 rotation = new(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
                     }
@@ -181,8 +181,8 @@ namespace SCPAI.Dumpster
                     {
                         var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAngles = Quaternion.LookRotation(doorLook.Position - player.Position, Vector3.up).eulerAngles;
-                        mouseLook.CurrentHorizontal = eulerAngles.x;
-                        mouseLook.CurrentVertical = eulerAngles.y;
+                        mouseLook.CurrentHorizontal = eulerAngles.y;
+                        mouseLook.CurrentVertical = eulerAngles.x;
                         Vector3 rotation = new(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
                     }
@@ -217,7 +217,7 @@ namespace SCPAI.Dumpster
                 {
                     Log.Debug(e);
                 }
-                if(currentTarget != null && (currentTarget.Transform.position - player.Transform.position).sqrMagnitude < attackRange)
+                if (currentTarget != null && (currentTarget.Transform.position - player.Transform.position).sqrMagnitude < attackRange)
                 {
                     player.Role.As<Scp096Role>().Attack();
                 }
