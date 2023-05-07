@@ -58,6 +58,7 @@ namespace SCPAI.Dumpster
             }
             fpcRole = Main.Instance.aihand.newPlayer.GetComponent<IFpcRole>();
             GenNavStart();
+
         }
 
         public void GenNavStart()
@@ -224,7 +225,14 @@ namespace SCPAI.Dumpster
                 }
             }
         }
-
+        public void atahugaswgg(VoiceChattingEventArgs ev)
+        {
+            RaycastHit hit;
+            if (Physics.Raycast(ev.Player.Position, Vector3.forward, out hit, 3f))
+            {
+                Log.Info(hit.transform.gameObject.name);
+            }
+        }
         public bool IsDummy(ReferenceHub hub)
         {
             return Main.Instance.Dummies.Contains(hub);

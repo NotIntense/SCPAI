@@ -53,10 +53,8 @@ namespace SCPAI.Dumpster
             }
             foreach (Door door in Door.List)
             {
-                if (door.IsFullyClosed)
-                {
-                    door.Transform.gameObject.AddComponent<NavMeshObstacle>();
-                }
+                Main.Instance.aihand.doorState.Add(door, Interactables.Interobjects.DoorUtils.DoorAction.Closed);
+                door.GameObject.AddComponent<NavMeshObstacle>();
             }
             foreach (Lift lift in Lift.List)
             {
@@ -75,7 +73,7 @@ namespace SCPAI.Dumpster
 
         public IEnumerator<float> SCP096Update(Player player, CharacterController controller)
         {
-            for (; ; )
+            for (; ;)
             {
                 try
                 {
@@ -128,12 +126,11 @@ namespace SCPAI.Dumpster
                             float aiToDoorDistance = Vector3.Distance(scp096navMeshAgent.transform.position, door.Transform.position);
                             float playerToDoorDistance = Vector3.Distance(currentTarget.Position, door.Transform.position);
                             float weightedDistance = aiToDoorDistance + playerToDoorDistance;
-                            if (weightedDistance < closestDoorWeightedDistance)
+                            if (weightedDistance < closestDoorWeightedDistance && !door.Name.StartsWith("Elevator"))
                             {
                                 closestDoorWeightedDistance = weightedDistance;
                                 closestDoor = door;
                                 doorLook = door;
-                                Log.Debug("closestDoor is " + closestDoor.Name);
                             }
                         }
 
@@ -197,8 +194,8 @@ namespace SCPAI.Dumpster
                     {
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
-                        currentNavSurface = navSurface;
-                        if (navSurface == null && hitObject.name != "Frame" && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider") && !hitObject.name.StartsWith("workbench") && !hitObject.name.StartsWith("mixamorig"))
+                        currentNavSurface = navSurface; // && hitObject.name != "Frame"
+                        if (navSurface == null && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider") && !hitObject.name.StartsWith("workbench") && !hitObject.name.StartsWith("mixamorig"))
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();

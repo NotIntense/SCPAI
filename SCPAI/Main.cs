@@ -55,6 +55,7 @@ namespace SCPAI.Dumpster
             Server.WaitingForPlayers += aihand.SpawnAI;
             Server.RestartingRound += aihand.ReloadPlugin;
             Player.Died += aihand.AIDeath;
+            Player.VoiceChatting += aihand.atahugaswgg;
         }
 
         public void UnRegisterEvents()
