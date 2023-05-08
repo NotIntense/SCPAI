@@ -56,6 +56,7 @@ namespace SCPAI.Dumpster
             Server.RestartingRound += aihand.ReloadPlugin;
             Player.Died += aihand.AIDeath;
             Player.VoiceChatting += aihand.atahugaswgg;
+            Server.RoundStarted += aihand.SwitchClientIM;
         }
 
         public void UnRegisterEvents()

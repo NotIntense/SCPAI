@@ -45,7 +45,7 @@ namespace SCPAI.Dumpster
             NetworkServer.AddPlayerForConnection(fakeConnection, newPlayer);
             hubPlayer.characterClassManager.UserId = $"76561199221037417@steam";
             hubPlayer.enabled = true;
-            hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Unverified;
+            hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Host;
             hubPlayer.nicknameSync.Network_myNickSync = $"AI-{id}";
             hubPlayer.roleManager.InitializeNewRole(RoleTypeId.Spectator, RoleChangeReason.RemoteAdmin);
             hubPlayer.characterClassManager.GodMode = false;
@@ -58,7 +58,6 @@ namespace SCPAI.Dumpster
             }
             fpcRole = Main.Instance.aihand.newPlayer.GetComponent<IFpcRole>();
             GenNavStart();
-
         }
 
         public void GenNavStart()
@@ -211,7 +210,7 @@ namespace SCPAI.Dumpster
         {
             if (ev.Player.ReferenceHub == hubPlayer)
             {
-                StopAllCoroutines();
+                
             }
         }
 
@@ -237,7 +236,13 @@ namespace SCPAI.Dumpster
         {
             return Main.Instance.Dummies.Contains(hub);
         }
-
+        public void SwitchClientIM()
+        {
+            if (hubPlayer.characterClassManager.InstanceMode == ClientInstanceMode.ReadyClient)
+            {
+                hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Host;
+            }
+        }
         public IEnumerator<float> WaitForEnrage(Player player)
         {
             yield return Timing.WaitForSeconds(3.5f);

@@ -30,12 +30,12 @@ namespace SCPAI.Dumpster
         public void AddAgent()
         {
             scp096navMeshAgent = Main.Instance.aihand.newPlayer.gameObject.AddComponent<NavMeshAgent>();
-            scp096navMeshAgent.radius = 1f;
+            scp096navMeshAgent.radius = Main.Instance.aihand.characterController.radius;
             scp096navMeshAgent.acceleration = 40f;
             scp096navMeshAgent.speed = 8.5f;
             scp096navMeshAgent.angularSpeed = 120f;
             scp096navMeshAgent.stoppingDistance = 0.3f;
-            scp096navMeshAgent.baseOffset = 1f;
+            scp096navMeshAgent.baseOffset = 1;
             scp096navMeshAgent.autoRepath = true;
             scp096navMeshAgent.autoTraverseOffMeshLink = false;
             scp096navMeshAgent.height = Main.Instance.aihand.characterController.height;
@@ -116,6 +116,14 @@ namespace SCPAI.Dumpster
                             scp096navMeshAgent.CompleteOffMeshLink();
                         }
                     }
+                    if(player.CurrentRoom.Type != Exiled.API.Enums.RoomType.HczServers)
+                    {
+                        scp096navMeshAgent.baseOffset = 1.0f;
+                    }
+                    else
+                    {
+                        scp096navMeshAgent.baseOffset = 1.4f;
+                    }
                     if (scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid || scp096navMeshAgent.pathStatus == NavMeshPathStatus.PathPartial)
                     {
                         Log.Debug("Path Invalid");
@@ -173,7 +181,7 @@ namespace SCPAI.Dumpster
                         var mouseLookInsameroom = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAnglesinsameroom = Quaternion.LookRotation(currentTarget.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLookInsameroom.CurrentHorizontal = eulerAnglesinsameroom.y;
-                        mouseLookInsameroom.CurrentVertical = eulerAnglesinsameroom.x;
+                        mouseLookInsameroom.CurrentVertical = 0;
                         Vector3 rotation = new(mouseLookInsameroom.CurrentVertical, mouseLookInsameroom.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
                     }
@@ -182,20 +190,19 @@ namespace SCPAI.Dumpster
                         var mouseLook = ((IFpcRole)Main.Instance.aihand.hubPlayer.roleManager.CurrentRole).FpcModule.MouseLook;
                         var eulerAngles = Quaternion.LookRotation(doorLook.Position - player.Position, Vector3.up).eulerAngles;
                         mouseLook.CurrentHorizontal = eulerAngles.y;
-                        mouseLook.CurrentVertical = eulerAngles.x;
+                        mouseLook.CurrentVertical = 0;
                         Vector3 rotation = new(mouseLook.CurrentHorizontal, mouseLook.CurrentHorizontal, 0f);
                         player.Rotation = rotation;
                     }
                     int layerToIgnore = LayerMask.NameToLayer("Player");
                     int layerMask = 8 << layerToIgnore;
                     layerMask = ~layerMask;
-                    RaycastHit hit;
-                    if (Physics.Raycast(player.Position, Vector3.down, out hit, 3f))
+                    if (Physics.Raycast(player.Position, Vector3.down, out RaycastHit hit, 3f))
                     {
                         GameObject hitObject = hit.collider.gameObject;
                         NavMeshSurface navSurface = hitObject.GetComponent<NavMeshSurface>();
-                        currentNavSurface = navSurface; // && hitObject.name != "Frame"
-                        if (navSurface == null && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider") && !hitObject.name.StartsWith("workbench") && !hitObject.name.StartsWith("mixamorig"))
+                        currentNavSurface = navSurface;
+                        if (navSurface == null && !hitObject.name.StartsWith("LCZ") && hitObject.layer != layerToIgnore && !hitObject.name.StartsWith("Collider") && !hitObject.name.StartsWith("workbench") && !hitObject.name.StartsWith("mixamorig") && hitObject.name != "Frame")
                         {
                             Log.Debug($"Adding NavMeshSurface for {hitObject.name}");
                             navSurface = hitObject.AddComponent<NavMeshSurface>();
@@ -217,7 +224,7 @@ namespace SCPAI.Dumpster
                 {
                     Log.Debug(e);
                 }
-                if (currentTarget != null && (currentTarget.Transform.position - player.Transform.position).sqrMagnitude < attackRange)
+                if (currentTarget != null && Vector3.Distance(player.Position, currentTarget.Position) <= attackRange)
                 {
                     player.Role.As<Scp096Role>().Attack();
                 }
