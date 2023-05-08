@@ -9,6 +9,7 @@ using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using System;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 

@@ -1,88 +1,99 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
 
-namespace UnityEngine.AI
+namespace Unity.AI.Navigation
 {
+    /// <summary>
+    /// Component used to create a navigable link between two NavMesh locations.
+    /// </summary>
     [ExecuteInEditMode]
     [DefaultExecutionOrder(-101)]
     [AddComponentMenu("Navigation/NavMeshLink", 33)]
-    [HelpURL("https://github.com/Unity-Technologies/NavMeshComponents#documentation-draft")]
     public class NavMeshLink : MonoBehaviour
     {
         [SerializeField]
-        private int m_AgentTypeID;
-
-        public int agentTypeID
-        { get { return m_AgentTypeID; } set { m_AgentTypeID = value; UpdateLink(); } }
+        int m_AgentTypeID;
 
         [SerializeField]
-        private Vector3 m_StartPoint = new Vector3(0.0f, 0.0f, -2.5f);
-
-        public Vector3 startPoint
-        { get { return m_StartPoint; } set { m_StartPoint = value; UpdateLink(); } }
+        Vector3 m_StartPoint = new Vector3(0.0f, 0.0f, -2.5f);
 
         [SerializeField]
-        private Vector3 m_EndPoint = new Vector3(0.0f, 0.0f, 2.5f);
-
-        public Vector3 endPoint
-        { get { return m_EndPoint; } set { m_EndPoint = value; UpdateLink(); } }
+        Vector3 m_EndPoint = new Vector3(0.0f, 0.0f, 2.5f);
 
         [SerializeField]
-        private float m_Width;
-
-        public float width
-        { get { return m_Width; } set { m_Width = value; UpdateLink(); } }
+        float m_Width;
 
         [SerializeField]
-        private int m_CostModifier = -1;
-
-        public int costModifier
-        { get { return m_CostModifier; } set { m_CostModifier = value; UpdateLink(); } }
+        int m_CostModifier = -1;
 
         [SerializeField]
-        private bool m_Bidirectional = true;
-
-        public bool bidirectional
-        { get { return m_Bidirectional; } set { m_Bidirectional = value; UpdateLink(); } }
+        bool m_Bidirectional = true;
 
         [SerializeField]
-        private bool m_AutoUpdatePosition;
-
-        public bool autoUpdate
-        { get { return m_AutoUpdatePosition; } set { SetAutoUpdate(value); } }
+        bool m_AutoUpdatePosition;
 
         [SerializeField]
-        private int m_Area;
+        int m_Area;
 
-        public int area
-        { get { return m_Area; } set { m_Area = value; UpdateLink(); } }
+        /// <summary> Gets or sets the type of agent that can use the link. </summary>
+        public int agentTypeID { get { return m_AgentTypeID; } set { m_AgentTypeID = value; UpdateLink(); } }
 
-        private NavMeshLinkInstance m_LinkInstance = new NavMeshLinkInstance();
+        /// <summary> Gets or sets the position at the middle of the link's start edge. </summary>
+        /// <remarks> The position is relative to the GameObject transform. </remarks>
+        public Vector3 startPoint { get { return m_StartPoint; } set { m_StartPoint = value; UpdateLink(); } }
 
-        private Vector3 m_LastPosition = Vector3.zero;
-        private Quaternion m_LastRotation = Quaternion.identity;
+        /// <summary> Gets or sets the position at the middle of the link's end edge. </summary>
+        /// <remarks> The position is relative to the GameObject transform. </remarks>
+        public Vector3 endPoint { get { return m_EndPoint; } set { m_EndPoint = value; UpdateLink(); } }
 
-        private static readonly List<NavMeshLink> s_Tracked = new List<NavMeshLink>();
+        /// <summary> The width of the segments making up the ends of the link. </summary>
+        /// <remarks> The segments are created perpendicular to the line from start to end. </remarks>
+        public float width { get { return m_Width; } set { m_Width = value; UpdateLink(); } }
 
-        private void OnEnable()
+        /// <summary> Gets or sets a value that determines the cost of traversing the link.</summary>
+        /// <remarks> A negative value implies that the traversal cost is obtained based on the area type.
+        /// A positive or zero value applies immediately, overridding the cost associated with the area type.</remarks>
+        public int costModifier { get { return m_CostModifier; } set { m_CostModifier = value; UpdateLink(); } }
+
+        /// <summary> Gets or sets whether the link can be traversed in both directions. </summary>
+        public bool bidirectional { get { return m_Bidirectional; } set { m_Bidirectional = value; UpdateLink(); } }
+
+        /// <summary> Gets or sets whether the world positions of the link's edges update whenever
+        /// the GameObject transform changes at runtime. </summary>
+        public bool autoUpdate { get { return m_AutoUpdatePosition; } set { SetAutoUpdate(value); } }
+
+        /// <summary> The area type of the link. </summary>
+        public int area { get { return m_Area; } set { m_Area = value; UpdateLink(); } }
+
+        NavMeshLinkInstance m_LinkInstance = new NavMeshLinkInstance();
+
+        Vector3 m_LastPosition = Vector3.zero;
+        Quaternion m_LastRotation = Quaternion.identity;
+
+        static readonly List<NavMeshLink> s_Tracked = new List<NavMeshLink>();
+
+        void OnEnable()
         {
             AddLink();
             if (m_AutoUpdatePosition && m_LinkInstance.valid)
                 AddTracking(this);
         }
 
-        private void OnDisable()
+        void OnDisable()
         {
             RemoveTracking(this);
             m_LinkInstance.Remove();
         }
 
+        /// <summary> Replaces the link with a new one using the current settings. </summary>
         public void UpdateLink()
         {
             m_LinkInstance.Remove();
             AddLink();
         }
 
-        private static void AddTracking(NavMeshLink link)
+        static void AddTracking(NavMeshLink link)
         {
 #if UNITY_EDITOR
             if (s_Tracked.Contains(link))
@@ -98,7 +109,7 @@ namespace UnityEngine.AI
             s_Tracked.Add(link);
         }
 
-        private static void RemoveTracking(NavMeshLink link)
+        static void RemoveTracking(NavMeshLink link)
         {
             s_Tracked.Remove(link);
 
@@ -106,7 +117,7 @@ namespace UnityEngine.AI
                 NavMesh.onPreUpdate -= UpdateTrackedInstances;
         }
 
-        private void SetAutoUpdate(bool value)
+        void SetAutoUpdate(bool value)
         {
             if (m_AutoUpdatePosition == value)
                 return;
@@ -117,7 +128,7 @@ namespace UnityEngine.AI
                 RemoveTracking(this);
         }
 
-        private void AddLink()
+        void AddLink()
         {
 #if UNITY_EDITOR
             if (m_LinkInstance.valid)
@@ -143,19 +154,21 @@ namespace UnityEngine.AI
             m_LastRotation = transform.rotation;
         }
 
-        private bool HasTransformChanged()
+        bool HasTransformChanged()
         {
-            if (m_LastPosition != transform.position) return true;
-            if (m_LastRotation != transform.rotation) return true;
+            if (m_LastPosition != transform.position)
+                return true;
+            if (m_LastRotation != transform.rotation)
+                return true;
             return false;
         }
 
-        private void OnDidApplyAnimationProperties()
+        void OnDidApplyAnimationProperties()
         {
             UpdateLink();
         }
 
-        private static void UpdateTrackedInstances()
+        static void UpdateTrackedInstances()
         {
             foreach (var instance in s_Tracked)
             {

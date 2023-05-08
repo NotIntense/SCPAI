@@ -1,53 +1,66 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
 
-namespace UnityEngine.AI
+namespace Unity.AI.Navigation
 {
+    /// <summary> Component that modifies the properties of the GameObjects used for building a NavMesh. </summary>
+    /// <remarks>The properties apply to the current GameObject and recursively to all its children
+    /// in the hierarchy. This modifier overrides the properties set to this GameObject by
+    /// any other NavMeshModifier in the parent hierarchy.</remarks>
     [ExecuteInEditMode]
     [AddComponentMenu("Navigation/NavMeshModifier", 32)]
-    [HelpURL("https://github.com/Unity-Technologies/NavMeshComponents#documentation-draft")]
     public class NavMeshModifier : MonoBehaviour
     {
         [SerializeField]
-        private bool m_OverrideArea;
-
-        public bool overrideArea
-        { get { return m_OverrideArea; } set { m_OverrideArea = value; } }
+        bool m_OverrideArea;
 
         [SerializeField]
-        private int m_Area;
-
-        public int area
-        { get { return m_Area; } set { m_Area = value; } }
+        int m_Area;
 
         [SerializeField]
-        private bool m_IgnoreFromBuild;
-
-        public bool ignoreFromBuild
-        { get { return m_IgnoreFromBuild; } set { m_IgnoreFromBuild = value; } }
+        bool m_IgnoreFromBuild;
 
         // List of agent types the modifier is applied for.
         // Special values: empty == None, m_AffectedAgents[0] =-1 == All.
         [SerializeField]
-        private List<int> m_AffectedAgents = new List<int>(new int[] { -1 });    // Default value is All
+        List<int> m_AffectedAgents = new List<int>(new int[] { -1 });    // Default value is All
 
-        private static readonly List<NavMeshModifier> s_NavMeshModifiers = new List<NavMeshModifier>();
+        /// <summary> Gets or sets whether to assign the <see cref="area"/> type to this object instead of the <see cref="NavMeshSurface.defaultArea"/>. </summary>
+        /// <remarks> The area type information is used when baking the NavMesh. </remarks>
+        /// <seealso href="https://docs.unity3d.com/Manual/nav-AreasAndCosts.html"/>
+        public bool overrideArea { get { return m_OverrideArea; } set { m_OverrideArea = value; } }
 
+        /// <summary> Gets or sets the area type applied by this GameObject. </summary>
+        /// <remarks> The range of useful values is from 0 to 31. Higher values always take precedence over lower values in the case when the surfaces of more GameObjects intersect each other to produce a NavMesh in the same region. A value of 1 has the highest priority over all the other types and it means "not walkable". Consequently, the surface of a GameObject with an <c>area</c> of 1 produces a hole in the NavMesh. This property has the same meaning as <see cref="NavMeshBuildSource.area"/>.</remarks>
+        /// <seealso href="https://docs.unity3d.com/Manual/nav-AreasAndCosts.html"/>
+        public int area { get { return m_Area; } set { m_Area = value; } }
+
+        /// <summary> Gets or sets whether the NavMesh building process ignores this GameObject and its children. </summary>
+        public bool ignoreFromBuild { get { return m_IgnoreFromBuild; } set { m_IgnoreFromBuild = value; } }
+
+        static readonly List<NavMeshModifier> s_NavMeshModifiers = new List<NavMeshModifier>();
+
+        /// <summary> Gets the list of all the <see cref="NavMeshModifier"/> components that are currently active in the scene. </summary>
         public static List<NavMeshModifier> activeModifiers
         {
             get { return s_NavMeshModifiers; }
         }
 
-        private void OnEnable()
+        void OnEnable()
         {
             if (!s_NavMeshModifiers.Contains(this))
                 s_NavMeshModifiers.Add(this);
         }
 
-        private void OnDisable()
+        void OnDisable()
         {
             s_NavMeshModifiers.Remove(this);
         }
 
+        /// <summary> Verifies whether this modifier can affect in any way the generation of a NavMesh for a given agent type. </summary>
+        /// <param name="agentTypeID"> The identifier of an agent type that originates from <see cref="NavMeshBuildSettings.agentTypeID"/>. </param>
+        /// <returns> <c>true</c> if this component can affect the NavMesh built for the given agent type; otherwise <c>false</c>. </returns>
         public bool AffectsAgentType(int agentTypeID)
         {
             if (m_AffectedAgents.Count == 0)
