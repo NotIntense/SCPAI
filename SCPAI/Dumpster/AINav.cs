@@ -1,13 +1,14 @@
 ﻿using Exiled.API.Features;
 using Exiled.API.Features.Roles;
-using MEC;
+
 using PlayerRoles.FirstPersonControl;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections.Generic;
+using MEC;
 
 namespace SCPAI.Dumpster
 {
@@ -24,6 +25,10 @@ namespace SCPAI.Dumpster
         public float distanceThreshold = 0.5f;
         public float attackRange = 3.0f;
         public float radius = 2.0f;
+        public float lookingAtThreshold = 19.9f;
+        public float lookingAtDistanceThreshold = 20f;
+        public LayerMask wallMask = 13;
+        public bool SCP173UpdateIsRunning;
 
         public List<GameObject> generateNav = new List<GameObject>();
         private int randomIndex;
@@ -65,11 +70,6 @@ namespace SCPAI.Dumpster
                 liftSur.collectObjects = CollectObjects.Children;
                 liftSur.BuildNavMesh();
             }
-        }
-
-        public IEnumerator<float> SCPWander(Player player, CharacterController controller)
-        {
-            yield break; // Temporary as its not started lol
         }
 
         public IEnumerator<float> SCP096Update(Player player, CharacterController controller)
@@ -232,5 +232,87 @@ namespace SCPAI.Dumpster
                 yield return Timing.WaitForSeconds(0.1f);
             }
         }
+
+        public IEnumerator<float> CheckFor173Lookers(Player SCP173)
+        {
+            SCP173UpdateIsRunning = true;
+            for(; ; )
+            {
+                foreach (Player ply in Player.List)
+                {
+                    if (ply.ReferenceHub != SCP173.ReferenceHub)
+                    {
+                        if (Vector3.Distance(ply.Position, SCP173.Position) > lookingAtDistanceThreshold || Physics.Linecast(ply.Position, SCP173.Position, wallMask))
+                        {
+                            yield return Timing.WaitForSeconds(0.5f);
+                        }
+
+                        Vector3 ScpFwd = SCP173.CameraTransform.forward;
+                        Vector3 TargetFwd = ply.CameraTransform.forward;
+                        float ViewAngle = Vector3.Angle(TargetFwd, (SCP173.Position - ply.Position).normalized);
+
+                        if (ViewAngle >= lookingAtThreshold)
+                        {
+                            Log.Debug("No one is looking at 173");
+                            Main.Instance.aihand.scp173targets = null;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                Log.Debug($"{ply.Nickname} is looking at 173");
+                                if (!Main.Instance.aihand.scp173targets.ContainsKey(ply))
+                                {
+                                    Main.Instance.aihand.scp173targets.Add(ply, ply);
+                                }
+                                MECExtensionMethods1.RunCoroutine(SCP173Update(Main.Instance.aihand.scp173targets, Main.Instance.aihand.characterController, SCP173));
+                                if (!SCP173UpdateIsRunning)
+                                {
+                                    Log.Info("Started Update");
+                                    MECExtensionMethods1.RunCoroutine(SCP173Update(Main.Instance.aihand.scp173targets, Main.Instance.aihand.characterController, SCP173));
+                                }
+                            }    
+                            catch(Exception e)
+                            {
+                                Log.Info(e);
+                            }
+                        }                     
+                    }                   
+                }
+                yield return Timing.WaitForSeconds(0.5f);
+            }
+        }
+
+        public IEnumerator<float> SCP173Update(Dictionary<Player, Player> scp173targets, CharacterController controller, Player SCP173)
+        {
+            Log.Info("Started");
+            Player closestPlayer = null;
+            float closestDistance = float.MaxValue;
+
+            foreach (Player player in scp173targets.Keys)
+            {
+                float distance = Vector3.Distance(controller.transform.position, player.Position);
+                if (distance < closestDistance)
+                {
+                    closestPlayer = player;
+                    closestDistance = distance;
+                }
+            }
+            Log.Info($"{closestPlayer.Nickname} is closest");
+            if (closestPlayer != null)
+            {
+                if (!SCP173.Role.As<Scp173Role>().BlinkReady)
+                {
+                    Log.Info("Isnt ready");
+                    yield return Timing.WaitForSeconds(SCP173.Role.As<Scp173Role>().BlinkCooldown);
+                }
+                if(closestDistance <= SCP173.Role.As<Scp173Role>().BlinkDistance)
+                {
+                    Log.Info("Blinked");
+                    SCP173.Role.As<Scp173Role>().Blink(closestPlayer.Position);
+                }
+            }
+        }
+
     }
 }

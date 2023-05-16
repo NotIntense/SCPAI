@@ -1,6 +1,7 @@
 ﻿using Exiled.API.Features;
 using Exiled.API.Features.Roles;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Cassie;
 using Exiled.Events.EventArgs.Scp096;
 using Interactables.Interobjects.DoorUtils;
 using MEC;
@@ -12,6 +13,7 @@ using System.Collections.Generic;
 using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
+using PlayerRoles.PlayableScps.Scp173;
 
 namespace SCPAI.Dumpster
 {
@@ -26,7 +28,11 @@ namespace SCPAI.Dumpster
         public IFpcRole fpcRole;
         private readonly System.Random rnd = new();
         public Dictionary<Player, Player> scp096targets = new();
+        public Dictionary<Player, Player> scp173targets = new();
         public Dictionary<Door, DoorAction> doorState = new();
+        public bool scp173isbeingwatched;
+        public Scp173ObserversTracker SCP173A = new Scp173ObserversTracker();
+
 
         public int DummiesAmount = Main.Instance.Dummies.Count;
         private int id;
@@ -97,12 +103,20 @@ namespace SCPAI.Dumpster
 
         public void ChangeAIParameters(ChangingRoleEventArgs ev)
         {
-            if (ev.Player.UserId == hubPlayer.characterClassManager.UserId)
+            if (ev.Player.ReferenceHub == hubPlayer)
             {
-                hubPlayer.nicknameSync.UpdateNickname($"{ev.NewRole} AI");
-                if (ev.NewRole.GetTeam() == Team.SCPs)
+                hubPlayer.nicknameSync.UpdateNickname($"{ev.NewRole.ToString().ToUpper()} AI");
+                if (ev.NewRole == RoleTypeId.Scp173)
                 {
-                    //MECExtensionMethods1.RunCoroutine(Main.Instance.ainav.SCPWander(ev.Player, characterController));
+                    Log.Debug("Started 'CheckFor173Lookers' coroutine");
+                    MECExtensionMethods1.RunCoroutine(Main.Instance.ainav.CheckFor173Lookers(ev.Player));
+                }
+                else if (ev.NewRole != RoleTypeId.Scp173)
+                {
+                    Log.Debug("Killed 'CheckFor173Lookers' coroutine");
+                    Main.Instance.ainav.SCP173UpdateIsRunning = false;
+                    CoroutineHandle coroutineHandle = Timing.RunCoroutine(Main.Instance.ainav.CheckFor173Lookers(ev.Player));
+                    Timing.KillCoroutines(coroutineHandle);
                 }
             }
         }
@@ -207,11 +221,11 @@ namespace SCPAI.Dumpster
             }
         }
 
-        public void AIDeath(DiedEventArgs ev)
+        public void AITelsafixlmfao(TriggeringTeslaEventArgs ev)
         {
-            if (ev.Player.ReferenceHub == hubPlayer)
+            if (ev.Player.ReferenceHub == hubPlayer && ev.IsInHurtingRange)
             {
-                
+                ev.Player.Hurt(200, Exiled.API.Enums.DamageType.Tesla);
             }
         }
 
@@ -237,11 +251,11 @@ namespace SCPAI.Dumpster
         {
             return Main.Instance.Dummies.Contains(hub);
         }
-        public void SwitchClientIM()
+        public void SwitchClientIM(ReferenceHub hub, ClientInstanceMode inst)
         {
-            if (hubPlayer.characterClassManager.InstanceMode == ClientInstanceMode.ReadyClient)
+            if(Main.Instance.Dummies.Contains(hub) && inst != ClientInstanceMode.Host)
             {
-                hubPlayer.characterClassManager.InstanceMode = ClientInstanceMode.Host;
+                hub.characterClassManager.InstanceMode = ClientInstanceMode.Host;
             }
         }
         public IEnumerator<float> WaitForEnrage(Player player)

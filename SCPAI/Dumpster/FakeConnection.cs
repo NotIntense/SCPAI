@@ -11,7 +11,7 @@ namespace SCPAI.Dumpster
 
         public override string address => "localhost";
 
-        public FakeConnection(int networkConnectionId) : base(networkConnectionId, false, 0)
+        public FakeConnection(int networkConnectionId) : base(networkConnectionId)
         {
         }
     }

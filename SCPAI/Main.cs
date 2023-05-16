@@ -1,6 +1,7 @@
 ﻿using Exiled.API.Enums;
 using Exiled.API.Features;
 using HarmonyLib;
+using PlayerRoles.PlayableScps.Scp173;
 using System;
 using System.Collections.Generic;
 using Player = Exiled.Events.Handlers.Player;
@@ -20,8 +21,8 @@ namespace SCPAI.Dumpster
         public override string Prefix => "SCPAI";
         public override string Author => "NotIntense";
         public override PluginPriority Priority => PluginPriority.Medium;
-        public override Version Version => new Version(1, 0, 0);
-        public override Version RequiredExiledVersion => new Version(6, 0, 0);
+        public override Version Version => new Version(2, 5, 2);
+        public override Version RequiredExiledVersion => new Version(7, 0, 0);
 
         public override void OnEnabled()
         {
@@ -54,9 +55,9 @@ namespace SCPAI.Dumpster
             SCP096.AddingTarget += aihand.AIRage;
             Server.WaitingForPlayers += aihand.SpawnAI;
             Server.RestartingRound += aihand.ReloadPlugin;
-            Player.Died += aihand.AIDeath;
+            Player.TriggeringTesla += aihand.AITelsafixlmfao;
             Player.VoiceChatting += aihand.atahugaswgg;
-            Server.RoundStarted += aihand.SwitchClientIM;
+            CharacterClassManager.OnInstanceModeChanged += aihand.SwitchClientIM;
         }
 
         public void UnRegisterEvents()
@@ -69,7 +70,8 @@ namespace SCPAI.Dumpster
             SCP096.AddingTarget -= aihand.AIRage;
             Server.WaitingForPlayers -= aihand.SpawnAI;
             Server.RestartingRound -= aihand.ReloadPlugin;
-            Player.Died -= aihand.AIDeath;
+            Player.TriggeringTesla -= aihand.AITelsafixlmfao;
+            CharacterClassManager.OnInstanceModeChanged -= aihand.SwitchClientIM;
         }
 
         public static bool IsAI(ReferenceHub hub)
